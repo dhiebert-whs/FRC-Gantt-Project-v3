@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(npx tsc:*)",
-      "Bash(cargo check:*)"
+      "Bash(cargo check:*)",
+      "Bash(ls -la --ignore=node_modules)",
+      "Bash(dir /b \"D:\\\\FRC Gantt Project v3\")"
     ]
   }
 }

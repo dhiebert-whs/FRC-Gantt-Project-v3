@@ -204,7 +204,7 @@ Before building Phase 4 components, add these two cross-cutting concerns that wo
   - `teamStore`: `loadTeamDb` (warning), `saveTeamDb` (warning)
 - Startup load failures (settings/team) show a warning but still let the app proceed with defaults
 
-**4.0b Touch target baseline**
+**4.0b Touch target baseline** ✅
 - All interactive elements in Phase 4+ must meet a 48px minimum touch target in kiosk mode
 - Use the `kiosk:` Tailwind variant — see the "Display mode" section in Cross-Cutting Architectural Notes
 - Pattern: `py-1.5 kiosk:py-3 text-sm kiosk:text-base` for standard buttons and inputs
@@ -454,21 +454,24 @@ src/
   utils/scheduleUtils.ts        ✅ Complete
   utils/timeUtils.ts            ✅ Complete
   utils/ganttAdapter.ts         ✅ Complete
+  utils/displayMode.ts          ✅ Pre-Phase 4
   stores/
-    projectStore.ts             ✅ Phase 1
-    teamStore.ts                ✅ Phase 1
-    settingsStore.ts            ✅ Phase 1
+    projectStore.ts             ✅ Phase 1 + pre-Phase 4 (toast wiring)
+    teamStore.ts                ✅ Phase 1 + pre-Phase 4 (toast wiring)
+    settingsStore.ts            ✅ Phase 1 + pre-Phase 4 (toast wiring)
+    toastStore.ts               ✅ Pre-Phase 4
   components/
-    TopBar/index.tsx            ✅ Phase 2
+    TopBar/index.tsx            ✅ Phase 2 + kiosk variants
     NewProjectDialog/index.tsx  ✅ Phase 2
-    GanttView/index.tsx         ✅ Phase 3
-    TaskEditor/index.tsx        ✅ Phase 3
+    GanttView/index.tsx         ✅ Phase 3 + kiosk variants
+    TaskEditor/index.tsx        ✅ Phase 3 + kiosk variants
+    ToastContainer/index.tsx    ✅ Pre-Phase 4
     DailyView/index.tsx         🔲 Phase 4
     TeamPanel/index.tsx         🔲 Phase 5
     TeamPanel/MemberForm.tsx    🔲 Phase 5
     Settings/index.tsx          🔲 Phase 6
     Reports/index.tsx           🔲 Phase 7
-  App.tsx                       ✅ Phase 2
+  App.tsx                       ✅ Phase 2 + display mode + toast mount
 src-tauri/
   src/
     commands.rs                 ✅ Complete
