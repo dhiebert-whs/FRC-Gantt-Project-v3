@@ -162,6 +162,13 @@ function buildColumns(
 }
 
 // ------------------------------------------------------------
+// Module-level flag — prevents duplicate zoom.init() + attachEvent()
+// during React StrictMode's mount → cleanup → remount cycle.
+// The gantt singleton persists across clearAll(); only destructor() resets ext.
+// ------------------------------------------------------------
+let ganttConfigured = false;
+
+// ------------------------------------------------------------
 // GanttView component
 // ------------------------------------------------------------
 
@@ -214,10 +221,15 @@ export function GanttView() {
   // ── Gantt initialization ─────────────────────────────────────
   // IMPORTANT: The containerRef div is ALWAYS in the DOM (never inside an early return).
   // This guarantees containerRef.current is set when this effect first runs.
+  //
+  // React StrictMode fires: mount → cleanup → remount. We use gantt.clearAll() in
+  // cleanup (not gantt.destructor()) so gantt.ext.zoom survives the cycle.
+  // The module-level `ganttConfigured` flag prevents ext.zoom.init() and
+  // attachEvent() from being called twice.
   useEffect(() => {
     if (!containerRef.current || ganttInitialized.current) return;
 
-    // Core config — must be set before gantt.init()
+    // Core config — safe to (re-)set on every mount
     gantt.config.date_format         = '%Y-%m-%d %H:%i';
     gantt.config.duration_unit       = 'day';
     gantt.config.work_time           = true;
@@ -228,108 +240,111 @@ export function GanttView() {
     gantt.config.open_tree_initially = true;
     gantt.config.readonly            = false;
 
-    // Zoom levels
-    gantt.ext.zoom.init({
-      levels: [
-        {
-          name: 'day',
-          scale_height: 50,
-          min_column_width: 60,
-          scales: [
-            { unit: 'month', step: 1, format: '%F %Y' },
-            { unit: 'day',   step: 1, format: '%d %D' },
-          ],
-        },
-        {
-          name: 'week',
-          scale_height: 50,
-          min_column_width: 50,
-          scales: [
-            { unit: 'month', step: 1, format: '%F %Y' },
-            { unit: 'week',  step: 1, format: 'W%W' },
-            { unit: 'day',   step: 1, format: '%d' },
-          ],
-        },
-        {
-          name: 'month',
-          scale_height: 50,
-          min_column_width: 120,
-          scales: [
-            { unit: 'month', step: 1, format: '%F %Y' },
-            { unit: 'week',  step: 1, format: 'W%W' },
-          ],
-        },
-      ],
-    });
+    if (!ganttConfigured) {
+      // Zoom levels — only init once (ext.zoom is reset by destructor, not clearAll)
+      gantt.ext.zoom.init({
+        levels: [
+          {
+            name: 'day',
+            scale_height: 50,
+            min_column_width: 60,
+            scales: [
+              { unit: 'month', step: 1, format: '%F %Y' },
+              { unit: 'day',   step: 1, format: '%d %D' },
+            ],
+          },
+          {
+            name: 'week',
+            scale_height: 50,
+            min_column_width: 50,
+            scales: [
+              { unit: 'month', step: 1, format: '%F %Y' },
+              { unit: 'week',  step: 1, format: 'W%W' },
+              { unit: 'day',   step: 1, format: '%d' },
+            ],
+          },
+          {
+            name: 'month',
+            scale_height: 50,
+            min_column_width: 120,
+            scales: [
+              { unit: 'month', step: 1, format: '%F %Y' },
+              { unit: 'week',  step: 1, format: 'W%W' },
+            ],
+          },
+        ],
+      });
 
-    // Initial columns (read from prefs captured at mount time)
-    gantt.config.columns = buildColumns(
-      ganttPrefs.visibleColumns,
-      () => teamMembersRef.current,
-    );
+      // Initial columns
+      gantt.config.columns = buildColumns(
+        ganttPrefs.visibleColumns,
+        () => teamMembersRef.current,
+      );
 
-    // Task bar styling
-    gantt.templates.task_style = function (_start: Date, _end: Date, task: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
-      if (task.$color) return `background:${task.$color};border-color:${task.$color};`;
-      return '';
-    };
-    gantt.templates.progress_text = function () { return ''; };
+      // Task bar styling
+      gantt.templates.task_style = function (_start: Date, _end: Date, task: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+        if (task.$color) return `background:${task.$color};border-color:${task.$color};`;
+        return '';
+      };
+      gantt.templates.progress_text = function () { return ''; };
 
-    // Grey out non-working day columns
-    gantt.templates.scale_cell_class = function (date: Date) {
-      return gantt.isWorkTime(date, 'day') ? '' : 'gantt-nonwork-scale';
-    };
-    gantt.templates.timeline_cell_class = function (_task: any, date: Date) { // eslint-disable-line @typescript-eslint/no-explicit-any
-      return gantt.isWorkTime(date, 'day') ? '' : 'gantt-nonwork-cell';
-    };
+      // Grey out non-working day columns
+      gantt.templates.scale_cell_class = function (date: Date) {
+        return gantt.isWorkTime(date, 'day') ? '' : 'gantt-nonwork-scale';
+      };
+      gantt.templates.timeline_cell_class = function (_task: any, date: Date) { // eslint-disable-line @typescript-eslint/no-explicit-any
+        return gantt.isWorkTime(date, 'day') ? '' : 'gantt-nonwork-cell';
+      };
 
-    // Block gantt's built-in inline task creation
-    gantt.attachEvent('onBeforeTaskAdd', () => false);
+      // Block gantt's built-in inline task creation / deletion
+      gantt.attachEvent('onBeforeTaskAdd',    () => false);
+      gantt.attachEvent('onBeforeTaskDelete', () => false);
 
-    // Initialize
+      // ── Event handlers ────────────────────────────────────────
+
+      gantt.attachEvent('onAfterTaskUpdate', (id: string, task: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+        const pf = projectFileRef.current;
+        if (!pf) return true;
+        const existing = pf.tasks.find(t => t.id === id);
+        if (!existing) return true;
+        suppressReload.current = true;
+        updateTaskRef.current(id, ganttToTask(task, existing, pf.project));
+        requestAnimationFrame(() => { suppressReload.current = false; });
+        return true;
+      });
+
+      gantt.attachEvent('onAfterLinkAdd', (id: string, link: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+        suppressReload.current = true;
+        addDependencyRef.current(ganttToDependency({ ...link, id }));
+        requestAnimationFrame(() => { suppressReload.current = false; });
+        return true;
+      });
+
+      gantt.attachEvent('onAfterLinkDelete', (id: string) => {
+        suppressReload.current = true;
+        deleteDependencyRef.current(id);
+        requestAnimationFrame(() => { suppressReload.current = false; });
+        return true;
+      });
+
+      // Task click → open editor
+      gantt.attachEvent('onTaskClick', (id: string) => {
+        setSelectedTaskId(id);
+        return true;
+      });
+
+      ganttConfigured = true;
+    }
+
+    // (Re-)attach gantt to this mount's DOM container, then seed with empty data
     gantt.init(containerRef.current);
     gantt.parse({ data: [], links: [] });
     ganttInitialized.current = true;
     gantt.ext.zoom.setLevel(ganttPrefs.defaultZoom);
 
-    // ── Event handlers ──────────────────────────────────────────
-
-    gantt.attachEvent('onAfterTaskUpdate', (id: string, task: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
-      const pf = projectFileRef.current;
-      if (!pf) return true;
-      const existing = pf.tasks.find(t => t.id === id);
-      if (!existing) return true;
-      suppressReload.current = true;
-      updateTaskRef.current(id, ganttToTask(task, existing, pf.project));
-      requestAnimationFrame(() => { suppressReload.current = false; });
-      return true;
-    });
-
-    gantt.attachEvent('onAfterLinkAdd', (id: string, link: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
-      suppressReload.current = true;
-      addDependencyRef.current(ganttToDependency({ ...link, id }));
-      requestAnimationFrame(() => { suppressReload.current = false; });
-      return true;
-    });
-
-    gantt.attachEvent('onAfterLinkDelete', (id: string) => {
-      suppressReload.current = true;
-      deleteDependencyRef.current(id);
-      requestAnimationFrame(() => { suppressReload.current = false; });
-      return true;
-    });
-
-    // Block gantt's built-in task delete — handled by TaskEditor
-    gantt.attachEvent('onBeforeTaskDelete', () => false);
-
-    // Task click → open editor
-    gantt.attachEvent('onTaskClick', (id: string) => {
-      setSelectedTaskId(id);
-      return true;
-    });
-
     return () => {
-      gantt.destructor();
+      // Use clearAll() — NOT destructor() — so gantt.ext.zoom survives StrictMode cleanup
+      gantt.clearAll();
       ganttInitialized.current = false;
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
