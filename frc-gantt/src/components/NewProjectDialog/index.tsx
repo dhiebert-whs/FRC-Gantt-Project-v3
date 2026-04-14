@@ -158,7 +158,7 @@ export function NewProjectDialog({ onClose }: NewProjectDialogProps) {
         </div>
 
         {/* Scrollable body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+        <form id="new-project-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
 
           {/* ── Project info ── */}
           <section className="space-y-4">

@@ -4,6 +4,7 @@
 // ============================================================
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { format } from 'date-fns';
 import { gantt } from 'dhtmlx-gantt';
 import { nanoid } from 'nanoid';
 import { useProjectStore } from '../../stores/projectStore';
@@ -155,6 +156,25 @@ function buildColumns(
       align:    'center',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       template: (task: any) => `${Math.round((task.progress ?? 0) * 100)}%`,
+    });
+  }
+
+  if (visibleColumns.includes('endDate')) {
+    cols.push({
+      name:     'end_date',
+      label:    'End',
+      width:    88,
+      align:    'center',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      template: (task: any) => {
+        if (!task.end_date) return '—';
+        try {
+          const d = task.end_date instanceof Date ? task.end_date : new Date(task.end_date);
+          return format(d, 'MM/dd/yy');
+        } catch {
+          return '—';
+        }
+      },
     });
   }
 
@@ -314,8 +334,12 @@ export function GanttView() {
       });
 
       gantt.attachEvent('onAfterLinkAdd', (id: string, link: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+        const pf = projectFileRef.current;
+        if (!pf) return true;
         suppressReload.current = true;
-        addDependencyRef.current(ganttToDependency({ ...link, id }));
+        const predecessor = pf.tasks.find(t => t.id === link.source);
+        const predecessorEndDate = predecessor?.plannedEndDate ?? pf.project.startDate;
+        addDependencyRef.current(ganttToDependency({ ...link, id }, pf.project, predecessorEndDate));
         requestAnimationFrame(() => { suppressReload.current = false; });
         return true;
       });

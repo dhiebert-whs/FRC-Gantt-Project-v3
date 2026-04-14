@@ -34,11 +34,14 @@ function App() {
     if (settingsLoaded) {
       setCurrentView(defaultView as View);
     }
-  }, [settingsLoaded]);
+  }, [settingsLoaded, defaultView]);
 
   // Global keyboard shortcuts
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (!e.ctrlKey && !e.metaKey) return;
+    // Don't fire while the user is typing in an input, textarea, or select
+    const tag = (e.target as HTMLElement)?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
     switch (e.key.toLowerCase()) {
       case 's':
         e.preventDefault();

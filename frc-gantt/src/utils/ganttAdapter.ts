@@ -91,15 +91,22 @@ export function ganttToTask(ganttTask: GanttTask, existing: Task, project: Proje
 // TaskDependency → GanttLink
 // ------------------------------------------------------------
 
-export function dependencyToGantt(dep: TaskDependency, project: Project): GanttLink {
+/**
+ * predecessorEndDate is used as the anchor for meeting-day → calendar-day
+ * lag conversion. Pass the predecessor task's plannedEndDate.
+ */
+export function dependencyToGantt(
+  dep: TaskDependency,
+  project: Project,
+  predecessorEndDate: string,
+): GanttLink {
   return {
     id: dep.id,
     source: dep.predecessorId,
     target: dep.successorId,
     type: DEP_TYPE_TO_GANTT[dep.type],
-    // Convert lag from meeting days to calendar days for dhtmlx
     lag: dep.lagDays !== 0
-      ? meetingDaysToCalendarDays(new Date().toISOString().slice(0, 10), Math.abs(dep.lagDays), project) * Math.sign(dep.lagDays)
+      ? meetingDaysToCalendarDays(predecessorEndDate, Math.abs(dep.lagDays), project) * Math.sign(dep.lagDays)
       : 0,
   };
 }
@@ -108,16 +115,26 @@ export function dependencyToGantt(dep: TaskDependency, project: Project): GanttL
 // GanttLink → TaskDependency  (called after user draws a link)
 // ------------------------------------------------------------
 
+/**
+ * predecessorEndDate is used as the anchor for calendar-day → meeting-day
+ * lag conversion. Pass the predecessor task's plannedEndDate (or project
+ * startDate as a fallback when the predecessor can't be found).
+ */
 export function ganttToDependency(
   ganttLink: GanttLink,
+  project: Project,
+  predecessorEndDate: string,
   existingId?: string,
 ): Omit<TaskDependency, 'id'> & { id: string } {
+  const rawLag = ganttLink.lag ?? 0;
   return {
     id: existingId ?? ganttLink.id,
     predecessorId: ganttLink.source,
     successorId: ganttLink.target,
     type: (GANTT_TO_DEP_TYPE[ganttLink.type] ?? 'FS') as DependencyType,
-    lagDays: ganttLink.lag ?? 0,
+    lagDays: rawLag !== 0
+      ? calendarDaysToMeetingDays(predecessorEndDate, Math.abs(rawLag), project) * Math.sign(rawLag)
+      : 0,
   };
 }
 
@@ -138,7 +155,11 @@ export function projectToGanttData(
       gt.$color = resolveTaskColor(t, taskMap);
       return gt;
     }),
-    links: dependencies.map(d => dependencyToGantt(d, project)),
+    links: dependencies.map(d => {
+      const predecessor = taskMap.get(d.predecessorId);
+      const predecessorEndDate = predecessor?.plannedEndDate ?? project.startDate;
+      return dependencyToGantt(d, project, predecessorEndDate);
+    }),
   };
 }
 

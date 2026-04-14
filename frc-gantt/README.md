@@ -15,7 +15,7 @@ Built with Tauri + React + TypeScript.
 - **Daily view** — what's happening today, attendance tracking per session, daily notes by subteam
 - **Project + team database separation** — team roster persists across seasons; each season is its own project file
 - **Save / Open / Export** — native file dialogs, `.frcgantt` project files, PDF export of the Gantt chart
-- **Reports** — daily summary, daily to-do, attendance by date range, progress metrics, project summary
+- **Reports** — daily summary and daily to-do list (MVP); attendance, progress metrics, and project summary (planned)
 
 ---
 
@@ -69,9 +69,9 @@ src/                   # React + TypeScript frontend
   components/          # React components
 src-tauri/             # Rust backend
   src/commands.rs      # File I/O Tauri commands
-docs/                  # Design documentation
+dev_notes/             # Design documentation
   data-model.md        # Full data model reference
-  implementation-plan.md
+  implementation_plan.md
 ```
 
 ### Data Files
@@ -84,18 +84,18 @@ docs/                  # Design documentation
 
 ---
 
-## Status
+## Build Status
 
 | Phase | Description | Status |
 |-------|-------------|--------|
 | 0 | Scaffold + types + utilities | ✅ Complete |
-| 1 | Data layer (stores + Rust wiring) | 🔲 Next |
-| 2 | App shell (layout + navigation) | 🔲 |
-| 3 | Gantt view | 🔲 |
-| 4 | Daily view + attendance | 🔲 |
+| 1 | Data layer (stores + Rust wiring) | ✅ Complete |
+| 2 | App shell (layout + navigation) | ✅ Complete |
+| 3 | Gantt view | ✅ Complete |
+| 4 | Daily view + attendance | 🔲 Next |
 | 5 | Team management | 🔲 |
 | 6 | Settings | 🔲 |
-| 7 | Reports | 🔲 |
+| 7 | Reports (daily summary + to-do MVP) | 🔲 |
 | 8 | Polish + deployment | 🔲 |
 
 ---

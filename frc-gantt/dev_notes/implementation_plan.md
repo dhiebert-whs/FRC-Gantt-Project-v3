@@ -21,6 +21,25 @@ Each phase ends with something visible and usable.
 
 ---
 
+## Cross-Cutting Architectural Notes
+
+These apply across all phases and must not be deferred or forgotten.
+
+### Schema versioning
+All three persisted JSON files (`project`, `team`, `settings`) must include a `version` field (integer, starting at 1).
+On load, if the version is missing or lower than the current version, apply defaults for any missing fields
+before using the data. Never throw on an older file — merge with defaults instead.
+This has not been implemented yet. Add it when any of the file schemas change for the first time.
+
+### Source of truth for task/dependency state
+- `projectStore.tasks[]` and `projectStore.dependencies[]` are **always** the source of truth
+- dhtmlxGantt's internal state is a derived view — always write to the store, then let the reload effect push to gantt
+- The `suppressReload` ref in `GanttView` breaks the feedback loop when gantt events trigger store updates
+- Never read back from `gantt.getTask()` except in gantt event handlers that need to translate gantt state to store updates
+- When in doubt: store → gantt (never gantt → store except via event handlers)
+
+---
+
 ## Phase 1: Foundation (Data Layer + Rust Wiring) ✅ COMPLETE
 
 **Goal: The app can open, create, save, and load a project file.**
@@ -84,7 +103,10 @@ This is the most important phase — it's the primary display on the ClearTouch 
 - Initialized in a single `useEffect` (runs once on mount) with empty div ref
 - Configured: `date_format`, `duration_unit`, `work_time`, `fit_tasks`, `drag_links`, `show_today_marker`
 - Work time set via `setupWorkTime(project)` — iterates meeting days in range, calls `gantt.setWorkTime()`
-- `gantt.parse({ data: [], links: [] })` on init; `gantt.destructor()` on unmount
+- `gantt.parse({ data: [], links: [] })` on init
+- **Known deviation from original plan:** unmount uses `gantt.clearAll()` (not `gantt.destructor()`)
+  because `destructor()` destroys the zoom extension singleton and breaks React StrictMode's remount cycle.
+  This is intentional — the gantt singleton survives view unmounts by design.
 
 ### 3.2 Feed Project Data into Gantt ✅
 - Data reload `useEffect` watches `projectFile` — calls `gantt.clearAll()` then `gantt.parse()`
@@ -93,12 +115,13 @@ This is the most important phase — it's the primary display on the ClearTouch 
 
 ### 3.3 Gantt Columns ✅
 - `buildColumns(visibleColumns, getMembers)` builds column array based on settings
-- Title (always), Assignee, Status (colored badge), Priority, Start Date, Est. Days, %
+- Title (always), Assignee, Status (colored badge), Priority, Start Date, Est. Days, %, End Date
 - Columns effect reconfigures on settings change
 
 ### 3.4 dhtmlxGantt Event Handlers ✅
 - `onAfterTaskUpdate` → `ganttToTask()` → `updateTask()`
 - `onAfterLinkAdd` → `ganttToDependency()` → `addDependency()`
+  - Lag conversion uses predecessor's `plannedEndDate` as anchor (not today)
 - `onAfterLinkDelete` → `deleteDependency()`
 - `onBeforeTaskDelete` → returns false (deletion via TaskEditor only)
 - `onBeforeTaskAdd` → returns false (addition via our UI only)
@@ -111,6 +134,7 @@ This is the most important phase — it's the primary display on the ClearTouch 
 ### 3.6 Critical Path Toggle ✅
 - Toolbar button, persisted to `settingsStore.gantt.showCriticalPath`
 - `gantt.config.highlight_critical_path` toggled + `gantt.render()`
+- Note: `show_today_marker` is applied once on init; does not react to live settings changes (deferred to Phase 8 polish)
 
 ### 3.7 TaskEditor Panel ✅
 - Slide-in panel (w-80) from the right, inside flex layout (gantt shrinks to accommodate)
@@ -129,6 +153,19 @@ This is the most important phase — it's the primary display on the ClearTouch 
 
 ## Phase 4: Daily View
 **Goal: A useful daily summary screen showing what's happening today and allowing attendance tracking.**
+
+### Pre-Phase 4 Requirements
+Before building Phase 4 components, add these two cross-cutting concerns that would be costly to retrofit:
+
+**4.0a Error feedback pipeline**
+- Add a lightweight toast/banner component (e.g., a fixed `div` in `App.tsx`) with an `addToast(msg, type)` action
+- Wire all file I/O failures in `projectStore` and `settingsStore` to surface a visible error message
+- Rationale: file ops can silently fail in school lab environments (permissions, moved files); the user needs feedback
+
+**4.0b Touch target baseline**
+- All interactive elements in Phase 4+ must meet a 48px minimum touch target (height or width)
+- This applies to buttons, checkboxes, attendance status toggles, and date navigation controls
+- Rationale: the app runs on a ClearTouch touchscreen; retrofitting this in Phase 8 would require rework
 
 ### 4.1 DailyView Component (`src/components/DailyView/index.tsx`)
 Layout:
@@ -249,7 +286,10 @@ Sections:
 All reports are generated as HTML in a new Tauri window and printed via `window.print()`.
 CSS `@media print` handles formatting. Export as PDF via browser print dialog.
 
-### 7.1 Report: Daily Summary
+**MVP scope (must ship in Phase 7):** Reports 7.1 and 7.2 only.
+**Post-MVP (implement after core app is stable):** Reports 7.3–7.5. These are useful but not needed for daily build-season operation.
+
+### 7.1 Report: Daily Summary ← MVP
 For a selected date:
 - Date, build day number, days remaining
 - Attendance summary (present/total per subteam)
@@ -258,21 +298,21 @@ For a selected date:
 - Blocked tasks and their blockers
 - Project notes + subteam notes for the day
 
-### 7.2 Report: Daily To-Do List
+### 7.2 Report: Daily To-Do List ← MVP
 For a selected date:
 - Tasks active on that date, grouped by subteam
 - Each task: title, assigned members, completion %, status
 - Empty checkbox column for printed use
 - Formatted for printing on a single page if possible
 
-### 7.3 Report: Attendance Report
+### 7.3 Report: Attendance Report ← Post-MVP
 Date range selector:
 - Overall attendance rate per member
 - Sessions attended / total sessions
 - Late/excused breakdown
 - Sorted by attendance rate (descending)
 
-### 7.4 Report: Progress Metrics
+### 7.4 Report: Progress Metrics ← Post-MVP
 - Overall project completion %
 - Completion % per subsystem
 - Tasks by status (not started / in progress / completed / blocked / deferred)
@@ -281,7 +321,7 @@ Date range selector:
 - Tasks behind schedule (planned end date < today, not completed)
 - Velocity: tasks completed per meeting day (rolling)
 
-### 7.5 Report: Project Summary
+### 7.5 Report: Project Summary ← Post-MVP
 Full season overview:
 - Project info (name, team, season, dates)
 - All subsystems with task tree and status
@@ -305,8 +345,14 @@ Full season overview:
 - Touch targets minimum 48px for finger use on the board
 
 ### 8.2 Auto-save
-- Set up a 30-second auto-save interval when `isDirty = true` and `currentFilePath` exists
-- Show "Auto-saved at 3:42 PM" indicator in top bar
+State machine (implement exactly this — don't simplify):
+- **Idle:** not dirty, no pending auto-save
+- **Dirty:** `isDirty = true`; starts 30-second countdown on each edit (debounced, not a fixed interval)
+- **Saving:** write in flight; suppress further auto-saves until resolved
+- **Saved:** write succeeded; show "Auto-saved at 3:42 PM" in top bar; transitions back to Idle
+- **Error:** write failed; show "Auto-save failed" warning; stays dirty so manual save can retry
+- Manual Save/Save As always interrupts and resets the state machine
+- Close/open/new while Dirty triggers the unsaved-changes guard (8.3) before proceeding
 
 ### 8.3 Unsaved Changes Guard
 - If `isDirty` and user tries to open/new project or close the app:
@@ -314,11 +360,18 @@ Full season overview:
   - Wire to Tauri's `onCloseRequested` window event
 
 ### 8.4 Export: Gantt Chart to PDF
-- dhtmlxGantt Standard has built-in export via `html2canvas` + `jsPDF`
+⚠️ **Spike required before implementing.** Verify which approach is viable:
+- `gantt.exportToPDF()` in dhtmlxGantt Standard edition calls an **online export service** (dhtmlx.com).
+  This will not work in an offline school environment.
+- Fallback approach: capture the gantt `div` with `html2canvas`, convert to PDF via `jsPDF`, then
+  write the PDF bytes via the Rust `write_project_file` command.
+- Both libraries (`html2canvas`, `jsPDF`) are client-side and do not require network access.
+- Recommended: use the html2canvas + jsPDF path and skip `gantt.exportToPDF()` entirely.
 - Add "Export Gantt" button that:
-  - Calls `gantt.exportToPDF()` or captures the gantt div with html2canvas
+  - Captures the gantt div with html2canvas
+  - Converts to PDF with jsPDF
   - Triggers `show_export_dialog` for save path
-  - Writes PDF via Rust `write_project_file` command (reuse the write command)
+  - Writes PDF bytes via Rust `write_project_file` command
 
 ### 8.5 Production Build
 ```bash
