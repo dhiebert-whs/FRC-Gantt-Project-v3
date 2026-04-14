@@ -5,6 +5,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { format } from 'date-fns';
+import { resolveDisplayMode } from '../../utils/displayMode';
 import { gantt } from 'dhtmlx-gantt';
 import { nanoid } from 'nanoid';
 import { useProjectStore } from '../../stores/projectStore';
@@ -208,9 +209,10 @@ export function GanttView() {
   const addDependency    = useProjectStore(s => s.addDependency);
   const deleteDependency = useProjectStore(s => s.deleteDependency);
 
-  const ganttPrefs       = useSettingsStore(s => s.settings.gantt);
-  const updateGanttPrefs = useSettingsStore(s => s.updateGanttPrefs);
-  const colorPalette     = useSettingsStore(s => s.settings.subsystemColorPalette);
+  const ganttPrefs         = useSettingsStore(s => s.settings.gantt);
+  const updateGanttPrefs   = useSettingsStore(s => s.updateGanttPrefs);
+  const colorPalette       = useSettingsStore(s => s.settings.subsystemColorPalette);
+  const displayModeSetting = useSettingsStore(s => s.settings.displayMode);
 
   const teamMembers      = useTeamStore(s => s.db.members);
 
@@ -261,13 +263,22 @@ export function GanttView() {
     gantt.config.readonly            = false;
 
     if (!ganttConfigured) {
+      // Scale dimensions vary by display mode — kiosk needs larger rows for touch readability.
+      // displayModeSetting is read from the store at component render time; settings are
+      // guaranteed loaded before GanttView mounts (App.tsx loading screen), so this is safe.
+      const isKiosk    = resolveDisplayMode(displayModeSetting) === 'kiosk';
+      const scaleH     = isKiosk ? 70 : 50;
+      const dayColW    = isKiosk ? 80 : 60;
+      const weekColW   = isKiosk ? 65 : 50;
+      const monthColW  = isKiosk ? 160 : 120;
+
       // Zoom levels — only init once (ext.zoom is reset by destructor, not clearAll)
       gantt.ext.zoom.init({
         levels: [
           {
             name: 'day',
-            scale_height: 50,
-            min_column_width: 60,
+            scale_height: scaleH,
+            min_column_width: dayColW,
             scales: [
               { unit: 'month', step: 1, format: '%F %Y' },
               { unit: 'day',   step: 1, format: '%d %D' },
@@ -275,8 +286,8 @@ export function GanttView() {
           },
           {
             name: 'week',
-            scale_height: 50,
-            min_column_width: 50,
+            scale_height: scaleH,
+            min_column_width: weekColW,
             scales: [
               { unit: 'month', step: 1, format: '%F %Y' },
               { unit: 'week',  step: 1, format: 'W%W' },
@@ -285,8 +296,8 @@ export function GanttView() {
           },
           {
             name: 'month',
-            scale_height: 50,
-            min_column_width: 120,
+            scale_height: scaleH,
+            min_column_width: monthColW,
             scales: [
               { unit: 'month', step: 1, format: '%F %Y' },
               { unit: 'week',  step: 1, format: 'W%W' },
@@ -493,12 +504,12 @@ export function GanttView() {
     <div className="flex flex-col h-full">
 
       {/* Toolbar — only meaningful when a project is open */}
-      <div className="flex items-center gap-2 px-3 py-2 bg-gray-900 border-b border-gray-700 shrink-0">
+      <div className="flex items-center gap-2 kiosk:gap-3 px-3 py-2 kiosk:py-3 bg-gray-900 border-b border-gray-700 shrink-0">
 
         <button
           onClick={handleAddSubsystem}
           disabled={!projectFile}
-          className="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded"
+          className="px-3 kiosk:px-4 py-1.5 kiosk:py-3 text-sm kiosk:text-base bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded"
         >
           + Add Subsystem
         </button>
@@ -515,7 +526,7 @@ export function GanttView() {
               ? 'Select a subsystem or assembly to add a task inside it'
               : `Add a task inside "${selectedTask.title}"`
           }
-          className="px-3 py-1.5 text-sm bg-gray-700 hover:bg-gray-600 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded"
+          className="px-3 kiosk:px-4 py-1.5 kiosk:py-3 text-sm kiosk:text-base bg-gray-700 hover:bg-gray-600 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded"
         >
           + Add Task
         </button>
@@ -528,7 +539,7 @@ export function GanttView() {
             <button
               key={level}
               onClick={() => handleZoomChange(level)}
-              className={`px-3 py-1 text-sm capitalize ${
+              className={`px-3 kiosk:px-4 py-1 kiosk:py-2.5 text-sm kiosk:text-base capitalize ${
                 zoom === level
                   ? 'bg-gray-600 text-white'
                   : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
@@ -544,7 +555,7 @@ export function GanttView() {
         {/* Critical path */}
         <button
           onClick={handleCriticalPathToggle}
-          className={`px-3 py-1.5 text-sm rounded border ${
+          className={`px-3 kiosk:px-4 py-1.5 kiosk:py-3 text-sm kiosk:text-base rounded border ${
             criticalPath
               ? 'bg-red-700 border-red-500 text-white'
               : 'bg-gray-800 border-gray-600 text-gray-300 hover:bg-gray-700'

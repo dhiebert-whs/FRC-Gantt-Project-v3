@@ -31,6 +31,42 @@ On load, if the version is missing or lower than the current version, apply defa
 before using the data. Never throw on an older file — merge with defaults instead.
 This has not been implemented yet. Add it when any of the file schemas change for the first time.
 
+### Display mode (kiosk / desktop)
+
+The app runs on two different hardware setups with meaningfully different input and screen characteristics:
+
+| | ClearTouch board (kiosk) | Laptop (desktop) |
+|---|---|---|
+| Screen | 4K 65"+ at distance | 1080p/1440p up close |
+| Input | Touch-first, finger-sized | Mouse + keyboard |
+| Users | Team standing around it | One person seated |
+
+**Architecture:**
+- `AppSettings.displayMode: 'auto' | 'kiosk' | 'desktop'` — persisted in settings.json
+- `src/utils/displayMode.ts` exports `resolveDisplayMode(setting)` → `'kiosk' | 'desktop'`
+  - `'auto'` auto-detects: ClearTouch when `navigator.maxTouchPoints > 0` AND `window.screen.width >= 1920`
+- `App.tsx` applies `data-mode="kiosk"` or `data-mode="desktop"` on the root `<div>`
+- `src/index.css` defines `@variant kiosk { [data-mode="kiosk"] & {} }` for Tailwind
+- All components use `kiosk:` Tailwind prefix for ClearTouch-specific sizing
+
+**Rules for all interactive elements (Phase 4+):**
+- Use `kiosk:py-3 kiosk:text-base` on buttons and inputs (desktop: `py-1.5 text-sm`)
+- Use `kiosk:py-2 kiosk:text-sm` on small toggle/chip-style controls (desktop: `py-0.5 text-xs`)
+- Minimum effective touch target in kiosk mode: 48px height or width
+
+**Phase 3 components already retrofitted:**
+- `TopBar`: h-12 → `kiosk:h-16`, all buttons have `kiosk:py-3 kiosk:text-base`
+- `GanttView`: dhtmlxGantt `scale_height` 50 → 70 in kiosk; toolbar buttons have kiosk variants
+- `TaskEditor`: panel `w-80` → `kiosk:w-[420px]`; all inputs/buttons have kiosk variants
+
+**Phase 6 (Settings) must add:**
+- "Display Mode" dropdown: Auto-detect / ClearTouch Board / Laptop
+- Calls `updateSettings({ displayMode: value })`
+
+**Note:** Changing displayMode while GanttView is mounted does not rescale dhtmlxGantt's row
+heights (those are set once at init). The new size takes effect on next app launch. This is
+acceptable — display mode is an at-startup configuration, not a live preference.
+
 ### Source of truth for task/dependency state
 - `projectStore.tasks[]` and `projectStore.dependencies[]` are **always** the source of truth
 - dhtmlxGantt's internal state is a derived view — always write to the store, then let the reload effect push to gantt
@@ -163,9 +199,11 @@ Before building Phase 4 components, add these two cross-cutting concerns that wo
 - Rationale: file ops can silently fail in school lab environments (permissions, moved files); the user needs feedback
 
 **4.0b Touch target baseline**
-- All interactive elements in Phase 4+ must meet a 48px minimum touch target (height or width)
-- This applies to buttons, checkboxes, attendance status toggles, and date navigation controls
-- Rationale: the app runs on a ClearTouch touchscreen; retrofitting this in Phase 8 would require rework
+- All interactive elements in Phase 4+ must meet a 48px minimum touch target in kiosk mode
+- Use the `kiosk:` Tailwind variant — see the "Display mode" section in Cross-Cutting Architectural Notes
+- Pattern: `py-1.5 kiosk:py-3 text-sm kiosk:text-base` for standard buttons and inputs
+- This infrastructure is already in place (App.tsx sets `data-mode`, index.css defines the variant)
+- Phase 3 components (TopBar, GanttView toolbar, TaskEditor) are already retrofitted
 
 ### 4.1 DailyView Component (`src/components/DailyView/index.tsx`)
 Layout:

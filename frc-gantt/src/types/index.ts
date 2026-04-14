@@ -108,6 +108,8 @@ export interface AppSettings {
   subsystemColorPalette: string[];   // hex values, cycles when adding subsystems
   gantt: GanttPreferences;
   defaultView: 'gantt' | 'daily';
+  /** Layout mode. 'auto' detects ClearTouch (touch + screen >= 1920px) vs laptop. */
+  displayMode: 'auto' | 'kiosk' | 'desktop';
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -146,6 +148,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     highlightToday: true,
   },
   defaultView: 'gantt',
+  displayMode: 'auto',
 };
 
 // ------------------------------------------------------------

@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useSettingsStore } from './stores/settingsStore';
 import { useTeamStore } from './stores/teamStore';
 import { useProjectStore } from './stores/projectStore';
+import { resolveDisplayMode } from './utils/displayMode';
 import { TopBar } from './components/TopBar';
 import type { View } from './components/TopBar';
 import { NewProjectDialog } from './components/NewProjectDialog';
@@ -16,6 +17,8 @@ function App() {
   const settingsLoaded = useSettingsStore(s => s.isLoaded);
   const teamLoaded     = useTeamStore(s => s.isLoaded);
   const defaultView    = useSettingsStore(s => s.settings.defaultView);
+  const displayModeSetting = useSettingsStore(s => s.settings.displayMode);
+  const effectiveMode  = resolveDisplayMode(displayModeSetting);
 
   const saveProject   = useProjectStore(s => s.saveProject);
   const openProject   = useProjectStore(s => s.openProject);
@@ -73,7 +76,10 @@ function App() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-950 text-white overflow-hidden">
+    <div
+      className="flex flex-col h-screen bg-gray-950 text-white overflow-hidden"
+      data-mode={effectiveMode}
+    >
       <TopBar
         currentView={currentView}
         onViewChange={setCurrentView}

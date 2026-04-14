@@ -1,2 +1,12 @@
 @import "tailwindcss";
 @import "dhtmlx-gantt/codebase/dhtmlxgantt.css";
+
+/* ── Display mode variant ───────────────────────────────────────
+   kiosk: applies when an ancestor has data-mode="kiosk"
+   Use kiosk: prefix in any component for ClearTouch-specific sizing.
+   Example: <button className="py-1.5 kiosk:py-3 text-sm kiosk:text-base">
+   ─────────────────────────────────────────────────────────────── */
+@variant kiosk {
+  [data-mode="kiosk"] & {
+  }
+}

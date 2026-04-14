@@ -81,14 +81,14 @@ export function TopBar({ currentView, onViewChange, onNewProject }: TopBarProps)
   }
 
   return (
-    <header className="flex items-center h-12 px-3 bg-gray-900 border-b border-gray-800 shrink-0 gap-3">
+    <header className="flex items-center h-12 kiosk:h-16 px-3 bg-gray-900 border-b border-gray-800 shrink-0 gap-3">
       {/* ── Left: File menu + project name ── */}
       <div className="flex items-center gap-2 min-w-0">
         {/* File menu button */}
         <div ref={menuRef} className="relative">
           <button
             onClick={() => setMenuOpen(v => !v)}
-            className="px-3 py-1.5 text-sm rounded hover:bg-gray-700 text-gray-300 hover:text-white transition-colors"
+            className="px-3 py-1.5 kiosk:py-3 kiosk:px-4 text-sm kiosk:text-base rounded hover:bg-gray-700 text-gray-300 hover:text-white transition-colors"
           >
             File
           </button>
@@ -123,7 +123,7 @@ export function TopBar({ currentView, onViewChange, onNewProject }: TopBarProps)
           <button
             key={id}
             onClick={() => onViewChange(id)}
-            className={`px-4 py-1.5 text-sm rounded transition-colors ${
+            className={`px-4 kiosk:px-5 py-1.5 kiosk:py-3 text-sm kiosk:text-base rounded transition-colors ${
               currentView === id
                 ? 'bg-blue-600 text-white'
                 : 'text-gray-400 hover:bg-gray-700 hover:text-white'
@@ -135,7 +135,7 @@ export function TopBar({ currentView, onViewChange, onNewProject }: TopBarProps)
       </nav>
 
       {/* ── Right: Save state + countdown ── */}
-      <div className="flex items-center gap-3 text-xs text-gray-400 shrink-0">
+      <div className="flex items-center gap-3 text-xs kiosk:text-sm text-gray-400 shrink-0">
         {isDirty ? (
           <button
             onClick={saveProject}
@@ -178,7 +178,7 @@ function MenuItem({ label, shortcut, onClick, disabled = false }: MenuItemProps)
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`flex items-center justify-between w-full px-3 py-2 text-sm text-left transition-colors ${
+      className={`flex items-center justify-between w-full px-3 py-2 kiosk:py-3 text-sm kiosk:text-base text-left transition-colors ${
         disabled
           ? 'text-gray-600 cursor-default'
           : 'text-gray-200 hover:bg-gray-700 hover:text-white'

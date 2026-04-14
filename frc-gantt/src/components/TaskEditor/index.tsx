@@ -92,7 +92,7 @@ function taskToForm(task: Task): TaskForm {
 
 function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
-    <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mt-5 mb-2">
+    <h3 className="text-xs kiosk:text-sm font-semibold uppercase tracking-wider text-gray-400 mt-5 mb-2">
       {children}
     </h3>
   );
@@ -100,7 +100,7 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <label className="block text-xs text-gray-400 mb-1">{children}</label>
+    <label className="block text-xs kiosk:text-sm text-gray-400 mb-1 kiosk:mb-2">{children}</label>
   );
 }
 
@@ -119,7 +119,7 @@ function TextInput({
       value={value}
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
-      className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+      className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1.5 kiosk:py-3 text-sm kiosk:text-base text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
     />
   );
 }
@@ -137,7 +137,7 @@ function SelectInput<T extends string>({
     <select
       value={value}
       onChange={e => onChange(e.target.value as T)}
-      className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500"
+      className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1.5 kiosk:py-3 text-sm kiosk:text-base text-white focus:outline-none focus:border-blue-500"
     >
       {options.map(o => (
         <option key={o.value} value={o.value}>{o.label}</option>
@@ -187,7 +187,7 @@ function CheckGroup({
                     : [...selectedIds, item.id]
                 )
               }
-              className={`px-2 py-0.5 rounded text-xs border transition-colors ${
+              className={`px-2 kiosk:px-3 py-0.5 kiosk:py-1.5 rounded text-xs kiosk:text-sm border transition-colors ${
                 selected
                   ? 'border-transparent text-white'
                   : 'border-gray-600 text-gray-400 hover:text-white hover:border-gray-400'
@@ -282,14 +282,14 @@ export function TaskEditor({ task, project, onClose, onAddChild }: TaskEditorPro
   const isMilestone = form.taskType === 'milestone';
 
   return (
-    <div className="w-80 flex flex-col bg-gray-900 border-l border-gray-700 shrink-0">
+    <div className="w-80 kiosk:w-[420px] flex flex-col bg-gray-900 border-l border-gray-700 shrink-0">
 
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700 shrink-0">
-        <span className="text-sm font-semibold text-gray-200">Edit Task</span>
+      <div className="flex items-center justify-between px-4 py-3 kiosk:py-4 border-b border-gray-700 shrink-0">
+        <span className="text-sm kiosk:text-base font-semibold text-gray-200">Edit Task</span>
         <button
           onClick={onClose}
-          className="text-gray-400 hover:text-white text-xl leading-none"
+          className="text-gray-400 hover:text-white text-xl kiosk:text-2xl leading-none kiosk:w-10 kiosk:h-10 kiosk:flex kiosk:items-center kiosk:justify-center"
           aria-label="Close"
         >
           ×
@@ -297,7 +297,7 @@ export function TaskEditor({ task, project, onClose, onAddChild }: TaskEditorPro
       </div>
 
       {/* Scrollable form body */}
-      <div className="flex-1 overflow-y-auto px-4 py-3">
+      <div className="flex-1 overflow-y-auto px-4 kiosk:px-5 py-3 kiosk:py-4">
 
         <SectionHeader>Identity</SectionHeader>
 
@@ -341,7 +341,7 @@ export function TaskEditor({ task, project, onClose, onAddChild }: TaskEditorPro
             onChange={e => setField('description', e.target.value)}
             rows={2}
             placeholder="Optional description…"
-            className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 resize-none"
+            className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1.5 kiosk:py-3 text-sm kiosk:text-base text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 resize-none"
           />
         </div>
 
@@ -353,7 +353,7 @@ export function TaskEditor({ task, project, onClose, onAddChild }: TaskEditorPro
             type="date"
             value={form.startDate}
             onChange={e => setField('startDate', e.target.value)}
-            className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500"
+            className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1.5 kiosk:py-3 text-sm kiosk:text-base text-white focus:outline-none focus:border-blue-500"
           />
         </div>
 
@@ -369,7 +369,7 @@ export function TaskEditor({ task, project, onClose, onAddChild }: TaskEditorPro
                 onChange={e =>
                   setField('estimatedDays', Math.max(1, parseInt(e.target.value) || 1))
                 }
-                className="w-20 bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500"
+                className="w-20 kiosk:w-24 bg-gray-800 border border-gray-600 rounded px-2 py-1.5 kiosk:py-3 text-sm kiosk:text-base text-white focus:outline-none focus:border-blue-500"
               />
               <span className="text-xs text-gray-400">
                 → {formatDate(plannedEndDate)}
@@ -384,7 +384,7 @@ export function TaskEditor({ task, project, onClose, onAddChild }: TaskEditorPro
             type="date"
             value={form.hardDeadline}
             onChange={e => setField('hardDeadline', e.target.value)}
-            className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500"
+            className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1.5 kiosk:py-3 text-sm kiosk:text-base text-white focus:outline-none focus:border-blue-500"
           />
         </div>
 
@@ -470,19 +470,19 @@ export function TaskEditor({ task, project, onClose, onAddChild }: TaskEditorPro
           onChange={e => setField('notes', e.target.value)}
           rows={4}
           placeholder="Blockers, references, session notes…"
-          className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 resize-none"
+          className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1.5 kiosk:py-3 text-sm kiosk:text-base text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 resize-none"
         />
 
       </div>
 
       {/* Footer */}
-      <div className="px-4 py-3 border-t border-gray-700 flex flex-col gap-2 shrink-0">
+      <div className="px-4 kiosk:px-5 py-3 kiosk:py-4 border-t border-gray-700 flex flex-col gap-2 shrink-0">
 
         {/* Add Child Task — only for subsystem/assembly types */}
         {onAddChild && (
           <button
             onClick={() => { onAddChild(task.id); }}
-            className="w-full px-3 py-1.5 text-sm bg-gray-700 hover:bg-gray-600 text-gray-200 rounded text-left"
+            className="w-full px-3 py-1.5 kiosk:py-3 text-sm kiosk:text-base bg-gray-700 hover:bg-gray-600 text-gray-200 rounded text-left"
           >
             + Add Task inside this {task.taskType}
           </button>
@@ -509,7 +509,7 @@ export function TaskEditor({ task, project, onClose, onAddChild }: TaskEditorPro
         ) : (
           <button
             onClick={handleDeleteClick}
-            className="px-3 py-1.5 text-sm text-red-400 hover:text-red-300 hover:bg-gray-800 rounded"
+            className="px-3 py-1.5 kiosk:py-3 text-sm kiosk:text-base text-red-400 hover:text-red-300 hover:bg-gray-800 rounded"
           >
             Delete
           </button>
@@ -518,13 +518,13 @@ export function TaskEditor({ task, project, onClose, onAddChild }: TaskEditorPro
           <div className="flex gap-2">
             <button
               onClick={onClose}
-              className="px-3 py-1.5 text-sm bg-gray-700 hover:bg-gray-600 text-white rounded"
+              className="px-3 py-1.5 kiosk:py-3 kiosk:px-4 text-sm kiosk:text-base bg-gray-700 hover:bg-gray-600 text-white rounded"
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
-              className="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded font-medium"
+              className="px-3 py-1.5 kiosk:py-3 kiosk:px-4 text-sm kiosk:text-base bg-blue-600 hover:bg-blue-500 text-white rounded font-medium"
             >
               Save
             </button>
