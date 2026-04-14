@@ -8,7 +8,7 @@
 // ============================================================
 
 import { addDays, format, parseISO, differenceInCalendarDays, getDay } from 'date-fns';
-import type { Project, SchedulePeriod, ScheduleException, DayOfWeek } from '../types';
+import type { Project, SchedulePeriod, DayOfWeek } from '../types';
 
 // Map JS getDay() return values (0=Sun … 6=Sat) to DayOfWeek strings
 const JS_DAY_TO_DOW: DayOfWeek[] = [

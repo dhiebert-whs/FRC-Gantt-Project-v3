@@ -1,50 +1,35 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
-import "./App.css";
+import { useEffect } from 'react';
+import { useSettingsStore } from './stores/settingsStore';
+import { useTeamStore } from './stores/teamStore';
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+  const loadSettings = useSettingsStore(s => s.loadSettings);
+  const loadTeamDb = useTeamStore(s => s.loadTeamDb);
+  const settingsLoaded = useSettingsStore(s => s.isLoaded);
+  const teamLoaded = useTeamStore(s => s.isLoaded);
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
+  useEffect(() => {
+    loadSettings();
+    loadTeamDb();
+  }, []);
+
+  if (!settingsLoaded || !teamLoaded) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-950 text-white">
+        <p className="text-lg tracking-wide">Loading…</p>
+      </div>
+    );
   }
 
   return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
-
-      <div className="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-    </main>
+    <div className="flex flex-col h-screen bg-gray-950 text-white">
+      <header className="px-4 py-3 bg-gray-900 border-b border-gray-800 text-sm text-gray-400">
+        FRC Gantt — Phase 1 complete. Phase 2 (App Shell) coming next.
+      </header>
+      <main className="flex-1 flex items-center justify-center text-gray-600">
+        No project open.
+      </main>
+    </div>
   );
 }
 

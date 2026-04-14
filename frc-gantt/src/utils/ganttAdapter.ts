@@ -10,7 +10,7 @@
 import type {
   Task, TaskDependency, Project,
   GanttTask, GanttLink,
-  DependencyType, TaskType, TaskStatus, TaskPriority,
+  DependencyType, TaskType,
 } from '../types';
 import {
   DEP_TYPE_TO_GANTT,
