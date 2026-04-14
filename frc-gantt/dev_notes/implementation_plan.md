@@ -46,49 +46,31 @@ Each phase ends with something visible and usable.
 
 ---
 
-## Phase 2: App Shell & Navigation
+## Phase 2: App Shell & Navigation ✅ COMPLETE
+
 **Goal: The app has a real layout, a top bar, and can create/open/save projects.**
 
-### 2.1 Layout Structure (`src/App.tsx`)
-```
-┌─────────────────────────────────────────────────────┐
-│  TopBar (file menu, project name, view switcher)     │
-├─────────────────────────────────────────────────────┤
-│                                                      │
-│  Main Content Area                                   │
-│  (GanttView | DailyView | TeamPanel | Settings)      │
-│                                                      │
-└─────────────────────────────────────────────────────┘
-```
-No sidebar needed — this is a full-screen display app.
+### 2.1 Layout + View Routing (`src/App.tsx`) ✅
+- TopBar + main content area, state-based view routing
+- Keyboard shortcuts: Ctrl+N (new), Ctrl+O (open), Ctrl+S (save)
+- Loading screen until settings + team db resolve
+- Applies `defaultView` from settings once loaded
 
-### 2.2 TopBar Component (`src/components/TopBar/index.tsx`)
-- Left: App name / current project name (or "No Project Open")
-- Center: View switcher buttons — Gantt | Daily | Team | Settings
-- Right: Save indicator (● Unsaved changes), competition countdown (days until hardEndDate)
-- File menu actions: New Project, Open Project, Save, Save As
-- Keyboard shortcuts: Ctrl+S = save, Ctrl+O = open, Ctrl+N = new
+### 2.2 TopBar (`src/components/TopBar/index.tsx`) ✅
+- Left: File dropdown menu (New/Open/Save/Save As) + project name + unsaved dot
+- Center: Gantt | Daily | Team | Settings switcher
+- Right: Unsaved/Saved indicator + competition countdown (color-coded: red ≤5 days, amber ≤10)
 
-### 2.3 New Project Dialog (`src/components/NewProjectDialog/index.tsx`)
-Fields:
-- Project name (required)
-- Team number
-- Season / game name
-- Start date, Goal end date, Hard end date (competition day)
-- Schedule setup: use default template (from settings) or customize
-  - Add/remove schedule periods (date range + meeting days + times)
-  - Add exceptions (cancelled days, added days)
+### 2.3 NewProjectDialog (`src/components/NewProjectDialog/index.tsx`) ✅
+- All required fields with validation
+- Schedule periods pre-populated from settings template, day toggles, time pickers
+- Schedule exceptions (cancelled/added/modified) with date + reason
+- Calls `projectStore.newProject()` on submit
 
-On submit: `projectStore.newProject(project)`
+### 2.4 Placeholder views ✅
+- GanttView, DailyView, TeamPanel, Settings — minimal placeholders ready for Phase 3+
 
-### 2.4 View Routing
-Simple state-based routing in App.tsx — no router library needed:
-```typescript
-type View = 'gantt' | 'daily' | 'team' | 'settings';
-const [currentView, setCurrentView] = useState<View>('gantt');
-```
-
-**Phase 2 complete when:** You can create a new project, the project name appears in the top bar, and switching views shows placeholder content for each section. Save/open dialogs open correctly.
+**Verified:** `tsc --noEmit` clean.
 
 ---
 
@@ -410,8 +392,8 @@ src/
     teamStore.ts                ✅ Phase 1
     settingsStore.ts            ✅ Phase 1
   components/
-    TopBar/index.tsx            🔲 Phase 2
-    NewProjectDialog/index.tsx  🔲 Phase 2
+    TopBar/index.tsx            ✅ Phase 2
+    NewProjectDialog/index.tsx  ✅ Phase 2
     GanttView/index.tsx         🔲 Phase 3
     TaskEditor/index.tsx        🔲 Phase 3
     DailyView/index.tsx         🔲 Phase 4
@@ -419,7 +401,7 @@ src/
     TeamPanel/MemberForm.tsx    🔲 Phase 5
     Settings/index.tsx          🔲 Phase 6
     Reports/index.tsx           🔲 Phase 7
-  App.tsx                       ✅ Phase 1 (Phase 2 will replace)
+  App.tsx                       ✅ Phase 2
 src-tauri/
   src/
     commands.rs                 ✅ Complete

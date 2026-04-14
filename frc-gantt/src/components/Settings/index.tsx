@@ -1,12 +1,12 @@
 // ============================================================
-// FRC Gantt App — Gantt View (Phase 3)
-// src/components/GanttView/index.tsx
+// FRC Gantt App — Settings (Phase 6)
+// src/components/Settings/index.tsx
 // ============================================================
 
-export function GanttView() {
+export function Settings() {
   return (
     <div className="flex items-center justify-center h-full text-gray-600">
-      Gantt chart — Phase 3
+      Settings — Phase 6
     </div>
   );
 }
