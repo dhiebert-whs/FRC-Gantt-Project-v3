@@ -7,6 +7,7 @@ import { create } from 'zustand';
 import { invoke } from '@tauri-apps/api/core';
 import { nanoid } from 'nanoid';
 import type { TeamDatabase, TeamMember, Subteam, Skill } from '../types';
+import { useToastStore } from './toastStore';
 
 const EMPTY_TEAM_DB: TeamDatabase = {
   version: '1.0',
@@ -52,6 +53,10 @@ export const useTeamStore = create<TeamState & TeamActions>((set, get) => ({
       }
     } catch (e) {
       console.error('Failed to load team database:', e);
+      useToastStore.getState().addToast(
+        'Team database could not be read. Starting with empty roster.',
+        'warning',
+      );
       set({ isLoaded: true });
     }
   },
@@ -63,6 +68,7 @@ export const useTeamStore = create<TeamState & TeamActions>((set, get) => ({
       await invoke('write_team_db', { json: JSON.stringify(db, null, 2) });
     } catch (e) {
       console.error('Failed to save team database:', e);
+      useToastStore.getState().addToast('Failed to save team database.', 'warning');
     }
   },
 

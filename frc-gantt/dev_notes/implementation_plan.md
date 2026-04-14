@@ -193,10 +193,16 @@ This is the most important phase — it's the primary display on the ClearTouch 
 ### Pre-Phase 4 Requirements
 Before building Phase 4 components, add these two cross-cutting concerns that would be costly to retrofit:
 
-**4.0a Error feedback pipeline**
-- Add a lightweight toast/banner component (e.g., a fixed `div` in `App.tsx`) with an `addToast(msg, type)` action
-- Wire all file I/O failures in `projectStore` and `settingsStore` to surface a visible error message
-- Rationale: file ops can silently fail in school lab environments (permissions, moved files); the user needs feedback
+**4.0a Error feedback pipeline** ✅
+- `src/stores/toastStore.ts` — Zustand store with `addToast(message, type)` / `dismissToast(id)`
+  - Types: `'error'` (6s auto-dismiss), `'warning'` (5s), `'success'` (3s); max 5 toasts
+  - Accessible from non-React store code via `useToastStore.getState().addToast(...)`
+- `src/components/ToastContainer/index.tsx` — fixed top-right overlay, kiosk-aware sizing
+- All file I/O catch blocks wired:
+  - `projectStore`: `openProject` (error), `saveProject` (error), `saveProjectAs` (error)
+  - `settingsStore`: `loadSettings` (warning), `saveSettings` (warning)
+  - `teamStore`: `loadTeamDb` (warning), `saveTeamDb` (warning)
+- Startup load failures (settings/team) show a warning but still let the app proceed with defaults
 
 **4.0b Touch target baseline**
 - All interactive elements in Phase 4+ must meet a 48px minimum touch target in kiosk mode

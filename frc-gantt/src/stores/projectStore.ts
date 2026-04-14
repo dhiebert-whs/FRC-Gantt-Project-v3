@@ -11,6 +11,7 @@ import type {
 } from '../types';
 import { createProjectFile } from '../types';
 import { buildSubsystemLookup } from '../utils/ganttAdapter';
+import { useToastStore } from './toastStore';
 
 // ------------------------------------------------------------
 // State & Actions interfaces
@@ -80,17 +81,13 @@ function collectWithDescendants(taskId: string, tasks: Task[]): Set<string> {
 
 export const useProjectStore = create<ProjectState & ProjectActions>((set, get) => {
   // Private helper — writes the current projectFile to a path and updates store state.
+  // Throws on failure; callers are responsible for catching and showing a toast.
   async function writeToPath(filePath: string): Promise<void> {
     const { projectFile } = get();
     if (!projectFile) return;
     const updated: ProjectFile = { ...projectFile, savedAt: new Date().toISOString() };
-    try {
-      await invoke('write_project_file', { path: filePath, json: JSON.stringify(updated, null, 2) });
-      set({ projectFile: updated, isDirty: false });
-    } catch (e) {
-      console.error('Failed to write project file:', e);
-      throw e;
-    }
+    await invoke('write_project_file', { path: filePath, json: JSON.stringify(updated, null, 2) });
+    set({ projectFile: updated, isDirty: false });
   }
 
   return {
@@ -114,7 +111,7 @@ export const useProjectStore = create<ProjectState & ProjectActions>((set, get) 
     openProject: async () => {
       try {
         const filePath = await invoke<string | null>('show_open_dialog');
-        if (!filePath) return;
+        if (!filePath) return;  // user cancelled — not an error
         const json = await invoke<string>('read_project_file', { path: filePath });
         const projectFile = JSON.parse(json) as ProjectFile;
         set({
@@ -125,26 +122,42 @@ export const useProjectStore = create<ProjectState & ProjectActions>((set, get) 
         });
       } catch (e) {
         console.error('Failed to open project:', e);
+        useToastStore.getState().addToast(
+          'Could not open project file. It may be missing or corrupted.',
+          'error',
+        );
       }
     },
 
     saveProject: async () => {
       const { currentFilePath } = get();
-      if (currentFilePath) {
-        await writeToPath(currentFilePath);
-      } else {
-        await get().saveProjectAs();
+      try {
+        if (currentFilePath) {
+          await writeToPath(currentFilePath);
+        } else {
+          await get().saveProjectAs();
+        }
+      } catch (e) {
+        console.error('Failed to save project:', e);
+        useToastStore.getState().addToast(
+          'Failed to save project. Your changes may not be saved.',
+          'error',
+        );
       }
     },
 
     saveProjectAs: async () => {
       try {
         const filePath = await invoke<string | null>('show_save_dialog');
-        if (!filePath) return;
+        if (!filePath) return;  // user cancelled — not an error
         await writeToPath(filePath);
         set({ currentFilePath: filePath });
       } catch (e) {
         console.error('Failed to save project:', e);
+        useToastStore.getState().addToast(
+          'Failed to save project. Your changes may not be saved.',
+          'error',
+        );
       }
     },
 

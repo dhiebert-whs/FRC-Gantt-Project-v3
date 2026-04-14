@@ -10,6 +10,7 @@ import { GanttView } from './components/GanttView';
 import { DailyView } from './components/DailyView';
 import { TeamPanel } from './components/TeamPanel';
 import { Settings } from './components/Settings';
+import { ToastContainer } from './components/ToastContainer';
 
 function App() {
   const loadSettings   = useSettingsStore(s => s.loadSettings);
@@ -96,6 +97,8 @@ function App() {
       {showNewProject && (
         <NewProjectDialog onClose={() => setShowNewProject(false)} />
       )}
+
+      <ToastContainer />
     </div>
   );
 }

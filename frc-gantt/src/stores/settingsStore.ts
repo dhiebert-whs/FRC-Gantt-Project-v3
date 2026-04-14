@@ -7,6 +7,7 @@ import { create } from 'zustand';
 import { invoke } from '@tauri-apps/api/core';
 import type { AppSettings, RecentProject, GanttPreferences } from '../types';
 import { DEFAULT_SETTINGS } from '../types';
+import { useToastStore } from './toastStore';
 
 interface SettingsState {
   settings: AppSettings;
@@ -40,6 +41,10 @@ export const useSettingsStore = create<SettingsState & SettingsActions>((set, ge
       }
     } catch (e) {
       console.error('Failed to load settings:', e);
+      useToastStore.getState().addToast(
+        'Settings file could not be read. Using defaults.',
+        'warning',
+      );
       set({ isLoaded: true });
     }
   },
@@ -51,6 +56,7 @@ export const useSettingsStore = create<SettingsState & SettingsActions>((set, ge
       await invoke('write_settings', { json: JSON.stringify(updated, null, 2) });
     } catch (e) {
       console.error('Failed to save settings:', e);
+      useToastStore.getState().addToast('Failed to save settings.', 'warning');
     }
   },
 
