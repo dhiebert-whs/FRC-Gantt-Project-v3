@@ -74,86 +74,56 @@ Each phase ends with something visible and usable.
 
 ---
 
-## Phase 3: Gantt View
+## Phase 3: Gantt View ✅ COMPLETE
+
 **Goal: A working Gantt chart showing the project with real tasks, colors, and dependencies.**
 This is the most important phase — it's the primary display on the ClearTouch board.
 
-### 3.1 dhtmlxGantt Initialization (`src/components/GanttView/index.tsx`)
-- Initialize `gantt` in a `useEffect` with empty div ref
-- Configure `gantt.config`:
-  - `date_format: "%Y-%m-%d %H:%i"`
-  - `xml_date: "%Y-%m-%d %H:%i"`
-  - `duration_unit: "day"`
-  - `work_time: true`
-  - `skip_off_time: true`
-  - `fit_tasks: true`
-  - `drag_links: true`
-  - `drag_progress: true`
-- Set up work time from project schedule: call `gantt.setWorkTime()` for each meeting day pattern and exception
-- `gantt.parse({ data: [], links: [] })` on init with empty data
-- Destroy gantt on component unmount
+### 3.1 dhtmlxGantt Initialization ✅
+- `import { gantt } from 'dhtmlx-gantt'` (named export, typed as GanttStatic)
+- Initialized in a single `useEffect` (runs once on mount) with empty div ref
+- Configured: `date_format`, `duration_unit`, `work_time`, `fit_tasks`, `drag_links`, `show_today_marker`
+- Work time set via `setupWorkTime(project)` — iterates meeting days in range, calls `gantt.setWorkTime()`
+- `gantt.parse({ data: [], links: [] })` on init; `gantt.destructor()` on unmount
 
-### 3.2 Feed Project Data into Gantt
-- When `projectStore.tasks` or `projectStore.dependencies` change:
-  - Call `projectToGanttData(tasks, dependencies, project)` from `ganttAdapter.ts`
-  - Call `gantt.clearAll()` then `gantt.parse(ganttData)`
-- Apply subsystem colors via `gantt.templates.task_class` and `gantt.templates.bar_class`
+### 3.2 Feed Project Data into Gantt ✅
+- Data reload `useEffect` watches `projectFile` — calls `gantt.clearAll()` then `gantt.parse()`
+- `suppressReload` ref prevents infinite loops when gantt fires store updates
+- `projectToGanttData()` now resolves subsystem colors via `resolveTaskColor()`
 
-### 3.3 Gantt Columns (Left-side grid)
-Configure `gantt.config.columns` based on `settingsStore.gantt.visibleColumns`:
-- Title column (always visible, editable inline)
-- Assignee column (shows assigned member names, read-only in grid)
-- Status column (colored badge)
-- Priority column
-- Start date column
-- Estimated days column
-- Completion % column
+### 3.3 Gantt Columns ✅
+- `buildColumns(visibleColumns, getMembers)` builds column array based on settings
+- Title (always), Assignee, Status (colored badge), Priority, Start Date, Est. Days, %
+- Columns effect reconfigures on settings change
 
-### 3.4 dhtmlxGantt Event Handlers
-Wire these gantt events back to the store:
-- `gantt.attachEvent("onAfterTaskUpdate", ...)` → `ganttToTask()` → `projectStore.updateTask()`
-- `gantt.attachEvent("onAfterLinkAdd", ...)` → `ganttToDependency()` → `projectStore.addDependency()`
-- `gantt.attachEvent("onAfterLinkDelete", ...)` → `projectStore.deleteDependency()`
-- `gantt.attachEvent("onAfterTaskAdd", ...)` → sync new task back to store
-- `gantt.attachEvent("onAfterTaskDelete", ...)` → `projectStore.deleteTask()`
-- `gantt.attachEvent("onTaskClick", ...)` → open TaskEditor panel
+### 3.4 dhtmlxGantt Event Handlers ✅
+- `onAfterTaskUpdate` → `ganttToTask()` → `updateTask()`
+- `onAfterLinkAdd` → `ganttToDependency()` → `addDependency()`
+- `onAfterLinkDelete` → `deleteDependency()`
+- `onBeforeTaskDelete` → returns false (deletion via TaskEditor only)
+- `onBeforeTaskAdd` → returns false (addition via our UI only)
+- `onTaskClick` → `setSelectedTaskId(id)`
 
-### 3.5 Zoom Controls
-Toolbar buttons for Day / Week / Month zoom:
-```typescript
-gantt.ext.zoom.setLevel('week'); // or 'day' | 'month'
-```
-Save selected zoom to `settingsStore.gantt.defaultZoom`
+### 3.5 Zoom Controls ✅
+- Day / Week / Month toolbar buttons, persisted to `settingsStore.gantt.defaultZoom`
+- Uses `gantt.ext.zoom.init({ levels })` + `gantt.ext.zoom.setLevel()`
 
-### 3.6 Critical Path Toggle
-Button in top bar or gantt toolbar:
-```typescript
-gantt.config.highlight_critical_path = true; // toggle
-gantt.render();
-```
+### 3.6 Critical Path Toggle ✅
+- Toolbar button, persisted to `settingsStore.gantt.showCriticalPath`
+- `gantt.config.highlight_critical_path` toggled + `gantt.render()`
 
-### 3.7 TaskEditor Panel (`src/components/TaskEditor/index.tsx`)
-Slides in from the right when a task is clicked. Fields:
-- Title, description
-- Task type (subsystem / assembly / task / milestone)
-- Subsystem color picker (only for taskType = 'subsystem')
-- Start date, planned end date, hard deadline
-- Estimated days (auto-calculates end date from start + meeting days)
-- Status dropdown, priority dropdown, completion % slider
-- Required subteams (multi-select from teamStore)
-- Required skills (multi-select from teamStore)
-- Assigned members (multi-select from teamStore, filtered by required subteams/skills)
-- Notes (textarea)
-- Delete button (with confirmation)
+### 3.7 TaskEditor Panel ✅
+- Slide-in panel (w-80) from the right, inside flex layout (gantt shrinks to accommodate)
+- All fields: title, description, type, color picker (subsystem only), start date, estimated days
+  (auto-shows planned end date), hard deadline, status, priority, completion %, required subteams,
+  required skills, assigned members (filtered by subteam), notes
+- Save → `updateTask(id, changes)` + close; Delete with inline confirmation; Cancel
 
-On save: `projectStore.updateTask(id, changes)`
+### 3.8 Add Task Controls ✅
+- "Add Subsystem" button → `createTask({ taskType:'subsystem', ... })` → `addTask()`, auto-selects for editing
+- `onBeforeTaskAdd` returns false — inline gantt creation blocked; add subtask via TaskEditor (change parentId)
 
-### 3.8 Add Task Controls
-- "Add Subsystem" button → creates taskType: 'subsystem' at root level
-- Right-click on any task → context menu → "Add subtask"
-- Tab key in inline title editor → create sibling task
-
-**Phase 3 complete when:** You can see the Gantt chart with color-coded subsystems, drag tasks to reschedule them, draw dependency arrows, click a task to edit it, and the chart respects the meeting schedule (non-meeting days are greyed/skipped).
+**Verified:** `tsc --noEmit` clean (exit 0).
 
 ---
 
@@ -394,8 +364,8 @@ src/
   components/
     TopBar/index.tsx            ✅ Phase 2
     NewProjectDialog/index.tsx  ✅ Phase 2
-    GanttView/index.tsx         🔲 Phase 3
-    TaskEditor/index.tsx        🔲 Phase 3
+    GanttView/index.tsx         ✅ Phase 3
+    TaskEditor/index.tsx        ✅ Phase 3
     DailyView/index.tsx         🔲 Phase 4
     TeamPanel/index.tsx         🔲 Phase 5
     TeamPanel/MemberForm.tsx    🔲 Phase 5

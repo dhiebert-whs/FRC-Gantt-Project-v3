@@ -19,6 +19,7 @@ import {
 import {
   meetingDaysToCalendarDays,
   calendarDaysToMeetingDays,
+  addMeetingDays,
 } from './scheduleUtils';
 
 // ------------------------------------------------------------
@@ -44,6 +45,8 @@ export function taskToGantt(task: Task, project: Project): GanttTask {
     $status: task.status,
     $priority: task.priority,
     $taskType: task.taskType,
+    $assignedMemberIds: task.assignedMemberIds,
+    $estimatedDays: task.estimatedDays,
   };
 }
 
@@ -75,6 +78,7 @@ export function ganttToTask(ganttTask: GanttTask, existing: Task, project: Proje
     ...existing,
     title: ganttTask.text,
     startDate: newStartDate,
+    plannedEndDate: addMeetingDays(newStartDate, meetingDays, project),
     estimatedDays: meetingDays,
     completionPercent: Math.round(ganttTask.progress * 100),
     parentId: ganttTask.parent === 0 ? undefined : String(ganttTask.parent),
@@ -126,8 +130,14 @@ export function projectToGanttData(
   dependencies: TaskDependency[],
   project: Project,
 ): { data: GanttTask[]; links: GanttLink[] } {
+  const taskMap = new Map(tasks.map(t => [t.id, t]));
   return {
-    data: tasks.map(t => taskToGantt(t, project)),
+    data: tasks.map(t => {
+      const gt = taskToGantt(t, project);
+      // Resolve color by walking up the parent chain
+      gt.$color = resolveTaskColor(t, taskMap);
+      return gt;
+    }),
     links: dependencies.map(d => dependencyToGantt(d, project)),
   };
 }

@@ -435,6 +435,8 @@ export interface GanttTask {
   $status?: TaskStatus;
   $priority?: TaskPriority;
   $taskType?: TaskType;
+  $assignedMemberIds?: string[];
+  $estimatedDays?: number;
 }
 
 export interface GanttLink {
