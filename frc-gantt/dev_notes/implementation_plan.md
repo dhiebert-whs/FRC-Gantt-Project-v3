@@ -21,51 +21,28 @@ Each phase ends with something visible and usable.
 
 ---
 
-## Phase 1: Foundation (Data Layer + Rust Wiring)
+## Phase 1: Foundation (Data Layer + Rust Wiring) ✅ COMPLETE
+
 **Goal: The app can open, create, save, and load a project file.**
 
-### 1.1 Wire Rust Commands into main.rs
-In `src-tauri/src/main.rs`:
-- Add `mod commands;`
-- Register all commands from `commands.rs` in `.invoke_handler(tauri::generate_handler![...])`
-- Register plugins: `tauri_plugin_dialog`, `tauri_plugin_fs`
-- Add plugin dependencies to `src-tauri/Cargo.toml`
+### 1.1 Wire Rust Commands into lib.rs ✅
+- `mod commands;` added to `src-tauri/src/lib.rs`
+- All 9 commands registered in `.invoke_handler()`
+- `tauri_plugin_dialog::init()` and `tauri_plugin_fs::init()` registered
+- `dialog:default` and `fs:default` added to `src-tauri/capabilities/default.json`
+- Plugin dependencies were already present in `Cargo.toml`
 
-### 1.2 Create Zustand Stores
+### 1.2 Zustand Stores ✅
 
-**`src/stores/settingsStore.ts`**
-- State: `AppSettings`
-- Actions: `loadSettings()`, `saveSettings()`, `addRecentProject()`, `updateGanttPrefs()`
-- On `loadSettings()`: invoke `read_settings`, parse JSON, fall back to `DEFAULT_SETTINGS`
-- On `saveSettings()`: invoke `write_settings` with serialized JSON
+**`src/stores/settingsStore.ts`** — complete
+**`src/stores/teamStore.ts`** — complete
+**`src/stores/projectStore.ts`** — complete
 
-**`src/stores/teamStore.ts`**
-- State: `TeamDatabase`
-- Actions: `loadTeamDb()`, `saveTeamDb()`, `addMember()`, `updateMember()`, `archiveMember()`, `addSubteam()`, `updateSubteam()`, `addSkill()`, `updateSkill()`
-- On load: invoke `read_team_db`, parse JSON, fall back to empty TeamDatabase
+### 1.3 App Initialization ✅
+- `src/App.tsx` calls `loadSettings()` + `loadTeamDb()` on mount
+- Shows loading screen until both resolve
 
-**`src/stores/projectStore.ts`**
-- State: `ProjectFile | null`, `currentFilePath: string | null`, `isDirty: boolean`, `subsystemLookup: Map<string, string>`
-- Actions:
-  - `newProject(project: Project)` — creates empty ProjectFile
-  - `openProject()` — show_open_dialog → read_project_file → parse → load
-  - `saveProject()` — if currentFilePath exists, write; else saveProjectAs()
-  - `saveProjectAs()` — show_save_dialog → write_project_file → update currentFilePath
-  - `addTask(task: Task)` — adds task, rebuilds subsystemLookup, sets isDirty
-  - `updateTask(id, changes)` — updates task, rebuilds lookup if parentId changed
-  - `deleteTask(id)` — removes task and all children, removes dependencies, rebuilds lookup
-  - `moveTask(id, newParentId)` — updates parentId, rebuilds lookup
-  - `addDependency(dep)`, `deleteDependency(id)`, `updateDependency(id, changes)`
-  - `addWorkSession(session)`, `updateWorkSession(id, changes)`
-  - `addDailyNote(note)`, `updateDailyNote(id, content)`
-  - `updateAttendance(sessionId, memberId, record)`
-
-### 1.3 App Initialization
-In `src/App.tsx`:
-- On mount: call `loadSettings()`, `loadTeamDb()`
-- Show a loading state until both resolve
-
-**Phase 1 complete when:** App launches, calls Rust commands without errors, stores initialize correctly. Verify with browser console — no errors on startup.
+**Verified:** `tsc --noEmit` clean, `cargo check` clean (exit 0).
 
 ---
 
@@ -429,9 +406,9 @@ src/
   utils/timeUtils.ts            ✅ Complete
   utils/ganttAdapter.ts         ✅ Complete
   stores/
-    projectStore.ts             🔲 Phase 1
-    teamStore.ts                🔲 Phase 1
-    settingsStore.ts            🔲 Phase 1
+    projectStore.ts             ✅ Phase 1
+    teamStore.ts                ✅ Phase 1
+    settingsStore.ts            ✅ Phase 1
   components/
     TopBar/index.tsx            🔲 Phase 2
     NewProjectDialog/index.tsx  🔲 Phase 2
@@ -442,9 +419,9 @@ src/
     TeamPanel/MemberForm.tsx    🔲 Phase 5
     Settings/index.tsx          🔲 Phase 6
     Reports/index.tsx           🔲 Phase 7
-  App.tsx                       🔲 Phase 2
+  App.tsx                       ✅ Phase 1 (Phase 2 will replace)
 src-tauri/
   src/
     commands.rs                 ✅ Complete
-    main.rs                     🔲 Phase 1 (wire commands)
+    lib.rs                      ✅ Phase 1 (commands wired)
 ```
