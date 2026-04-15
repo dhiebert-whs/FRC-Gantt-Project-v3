@@ -16,7 +16,8 @@ import {
   ganttToTask,
   ganttToDependency,
 } from '../../utils/ganttAdapter';
-import { getMeetingDaysInRange, addMeetingDays } from '../../utils/scheduleUtils';
+import { getMeetingDaysInRange, addMeetingDays, isMeetingDay } from '../../utils/scheduleUtils';
+import { useToastStore } from '../../stores/toastStore';
 import { createTask } from '../../types';
 import type { GanttColumnId, Project, TeamMember, TaskType } from '../../types';
 import { TaskEditor } from '../TaskEditor';
@@ -437,6 +438,14 @@ export function GanttView() {
   const handleAddSubsystem = useCallback(() => {
     const pf = projectFileRef.current;
     if (!pf) return;
+    // Warn if the project has no schedule periods — dates will fall back to
+    // calendar days instead of meeting days, and will look wrong in the chart.
+    if (pf.project.schedulePeriods.length === 0 || !isMeetingDay(pf.project.startDate, pf.project)) {
+      useToastStore.getState().addToast(
+        'No meeting days are defined for this project. Task dates may look incorrect. Add schedule periods in the New Project dialog when creating a project.',
+        'warning',
+      );
+    }
     const subsystemCount = pf.tasks.filter(t => t.taskType === 'subsystem').length;
     const color = colorPaletteRef.current[subsystemCount % colorPaletteRef.current.length] ?? '#457B9D';
     const startDate = pf.project.startDate;
@@ -580,6 +589,14 @@ export function GanttView() {
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-950 gap-2 text-gray-500 z-10">
             <p className="text-lg">No project open.</p>
             <p className="text-sm">Use File → New Project or File → Open to get started.</p>
+          </div>
+        )}
+
+        {/* Empty-tasks hint — shown when a project is open but has no tasks yet */}
+        {projectFile && projectFile.tasks.length === 0 && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-gray-600 pointer-events-none z-10">
+            <p className="text-base">No tasks yet.</p>
+            <p className="text-sm">Click <span className="text-gray-400 font-medium">+ Add Subsystem</span> in the toolbar above to get started.</p>
           </div>
         )}
 

@@ -94,12 +94,22 @@ export function addMeetingDays(
 
   let remaining = meetingDays - 1;  // startDate counts as day 1
   let current = parseISO(startDate);
+  // Safety cap: never advance more than 730 calendar days (2 years).
+  // This prevents an infinite loop when the project has no schedule periods
+  // or when the start date falls outside all defined period date ranges.
+  let guard = 730;
 
-  while (remaining > 0) {
+  while (remaining > 0 && guard-- > 0) {
     current = addDays(current, 1);
     if (isMeetingDay(format(current, 'yyyy-MM-dd'), project)) {
       remaining--;
     }
+  }
+  // If the guard expired (project has no meeting days in range), treat
+  // the unresolved remaining days as plain calendar days so the result
+  // is at least proportional instead of landing 2 years out.
+  if (remaining > 0) {
+    current = addDays(current, remaining);
   }
   return format(current, 'yyyy-MM-dd');
 }

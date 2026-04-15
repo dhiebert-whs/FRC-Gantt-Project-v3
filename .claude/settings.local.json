@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc:*)",
+      "Bash(timeout 30 npm run tauri dev)",
+      "Bash(timeout 60 npm run tauri dev)",
+      "Bash(npm run:*)"
+    ]
+  }
+}
