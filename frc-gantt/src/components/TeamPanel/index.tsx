@@ -40,8 +40,8 @@ export function TeamPanel() {
       </div>
 
       {/* Content area */}
-      <div className="flex flex-1 overflow-hidden">
-        <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-hidden">
+        <div className="h-full overflow-y-auto">
           {tab === 'members'  && <MembersTab  openForm={id => setMemberFormId(id)} />}
           {tab === 'subteams' && <SubteamsTab />}
           {tab === 'skills'   && <SkillsTab   />}

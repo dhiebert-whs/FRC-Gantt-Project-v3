@@ -575,13 +575,12 @@ export function GanttView() {
       </div>
 
       {/* Gantt chart area — container is always in DOM so gantt.init() always works */}
-      <div className="relative flex flex-1 overflow-hidden">
+      <div className="relative flex-1 overflow-hidden">
 
         {/* The gantt container — always rendered */}
         <div
           ref={containerRef}
-          className="flex-1"
-          style={{ minWidth: 0, minHeight: 0 }}
+          className="w-full h-full"
         />
 
         {/* No-project overlay — shown on top of the empty gantt when nothing is open */}

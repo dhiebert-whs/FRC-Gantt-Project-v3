@@ -282,7 +282,14 @@ export function TaskEditor({ task, project, onClose, onAddChild }: TaskEditorPro
   const isMilestone = form.taskType === 'milestone';
 
   return (
-    <div className="w-80 kiosk:w-[420px] flex flex-col bg-gray-900 border-l border-gray-700 shrink-0">
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70"
+      onClick={onClose}
+    >
+    <div
+      className="bg-gray-900 border border-gray-700 rounded-xl shadow-2xl w-full max-w-lg kiosk:max-w-xl max-h-[90vh] flex flex-col"
+      onClick={e => e.stopPropagation()}
+    >
 
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 kiosk:py-4 border-b border-gray-700 shrink-0">
@@ -533,6 +540,7 @@ export function TaskEditor({ task, project, onClose, onAddChild }: TaskEditorPro
 
       </div>{/* end footer */}
 
+    </div>{/* end content box */}
     </div>
   );
 }
