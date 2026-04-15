@@ -75,6 +75,47 @@ function collectWithDescendants(taskId: string, tasks: Task[]): Set<string> {
   return ids;
 }
 
+/**
+ * Recalculate a parent task's completionPercent as the average of its direct
+ * children, then propagate the update up to all ancestors.
+ * The `visited` set guards against any accidental circular parentId references.
+ */
+function recalculateCompletion(
+  parentId: string,
+  tasks: Task[],
+  visited = new Set<string>(),
+): Task[] {
+  if (visited.has(parentId)) return tasks;
+  visited.add(parentId);
+
+  const children = tasks.filter(t => t.parentId === parentId);
+  if (children.length === 0) return tasks; // leaf — nothing to recalculate
+
+  const avg = Math.round(
+    children.reduce((sum, c) => sum + c.completionPercent, 0) / children.length,
+  );
+
+  const updated = tasks.map(t =>
+    t.id === parentId
+      ? { ...t, completionPercent: avg, updatedAt: new Date().toISOString() }
+      : t,
+  );
+
+  const parent = updated.find(t => t.id === parentId);
+  return parent?.parentId
+    ? recalculateCompletion(parent.parentId, updated, visited)
+    : updated;
+}
+
+/**
+ * Called after a task's completionPercent changes.
+ * If the task has a parent, recalculates the parent (and all ancestors).
+ */
+function propagateCompletionUp(changedId: string, tasks: Task[]): Task[] {
+  const task = tasks.find(t => t.id === changedId);
+  return task?.parentId ? recalculateCompletion(task.parentId, tasks) : tasks;
+}
+
 // ------------------------------------------------------------
 // Store
 // ------------------------------------------------------------
@@ -175,7 +216,9 @@ export const useProjectStore = create<ProjectState & ProjectActions>((set, get) 
     addTask: (task) => {
       const pf = get().projectFile;
       if (!pf) return;
-      const tasks = [...pf.tasks, task];
+      const base = [...pf.tasks, task];
+      // A new task starts at 0% — if it has a parent, that lowers the parent's average
+      const tasks = task.parentId ? propagateCompletionUp(task.id, base) : base;
       set({
         projectFile: { ...pf, tasks },
         isDirty: true,
@@ -186,10 +229,14 @@ export const useProjectStore = create<ProjectState & ProjectActions>((set, get) 
     updateTask: (id, changes) => {
       const pf = get().projectFile;
       if (!pf) return;
-      const tasks = pf.tasks.map(t =>
+      const mapped = pf.tasks.map(t =>
         t.id === id ? { ...t, ...changes, updatedAt: new Date().toISOString() } : t
       );
-      // Rebuild lookup only when the tree structure changed
+      // Propagate completion upward when completionPercent changes
+      const tasks = 'completionPercent' in changes
+        ? propagateCompletionUp(id, mapped)
+        : mapped;
+      // Rebuild lookup when the tree structure changed
       const needsRebuild = 'parentId' in changes || 'taskType' in changes;
       set({
         projectFile: { ...pf, tasks },
@@ -201,11 +248,16 @@ export const useProjectStore = create<ProjectState & ProjectActions>((set, get) 
     deleteTask: (id) => {
       const pf = get().projectFile;
       if (!pf) return;
+      const deletedParentId = pf.tasks.find(t => t.id === id)?.parentId;
       const toDelete = collectWithDescendants(id, pf.tasks);
-      const tasks = pf.tasks.filter(t => !toDelete.has(t.id));
+      const filtered = pf.tasks.filter(t => !toDelete.has(t.id));
       const dependencies = pf.dependencies.filter(
         d => !toDelete.has(d.predecessorId) && !toDelete.has(d.successorId)
       );
+      // Recalculate parent's completion now that a child is gone
+      const tasks = deletedParentId
+        ? recalculateCompletion(deletedParentId, filtered)
+        : filtered;
       set({
         projectFile: { ...pf, tasks, dependencies },
         isDirty: true,

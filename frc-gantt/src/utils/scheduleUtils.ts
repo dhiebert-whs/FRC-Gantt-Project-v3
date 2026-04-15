@@ -181,6 +181,20 @@ export function nextMeetingDay(date: string, project: Project): string {
   return date; // fallback — no meeting days found in a year (shouldn't happen)
 }
 
+/**
+ * Starting from date, walk backward to find the previous (or same) meeting day.
+ * If the given date is already a meeting day, returns it unchanged.
+ */
+export function prevMeetingDay(date: string, project: Project): string {
+  let current = parseISO(date);
+  for (let i = 0; i < 365; i++) {
+    const iso = format(current, 'yyyy-MM-dd');
+    if (isMeetingDay(iso, project)) return iso;
+    current = addDays(current, -1);
+  }
+  return date; // fallback
+}
+
 // ------------------------------------------------------------
 // Meeting days remaining
 // ------------------------------------------------------------

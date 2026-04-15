@@ -193,8 +193,8 @@ let ganttConfigured = false;
 // GanttView component
 // ------------------------------------------------------------
 
-// Parent task types that can have children
-const PARENT_TYPES: TaskType[] = ['subsystem', 'assembly'];
+// Any non-milestone task can have children added to it
+const canHaveChildren = (taskType: TaskType) => taskType !== 'milestone';
 
 export function GanttView() {
   const containerRef     = useRef<HTMLDivElement>(null);
@@ -489,9 +489,9 @@ export function GanttView() {
     ? (projectFile.tasks.find(t => t.id === selectedTaskId) ?? null)
     : null;
 
-  // "Add Task" is enabled when a subsystem or assembly is selected
+  // "Add Task" is enabled when any non-milestone task is selected
   const selectedIsParent =
-    !!selectedTask && PARENT_TYPES.includes(selectedTask.taskType);
+    !!selectedTask && canHaveChildren(selectedTask.taskType);
 
   // ── Render ───────────────────────────────────────────────────
   //
@@ -590,7 +590,7 @@ export function GanttView() {
             task={selectedTask}
             project={projectFile.project}
             onClose={() => setSelectedTaskId(null)}
-            onAddChild={PARENT_TYPES.includes(selectedTask.taskType)
+            onAddChild={canHaveChildren(selectedTask.taskType)
               ? handleAddChildTask
               : undefined}
           />

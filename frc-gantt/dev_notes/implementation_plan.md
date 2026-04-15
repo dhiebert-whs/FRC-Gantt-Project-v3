@@ -12,12 +12,14 @@ Each phase ends with something visible and usable.
 - ✅ Tauri + React + TypeScript + Vite scaffold
 - ✅ Dependencies: zustand, nanoid, date-fns, dhtmlx-gantt, tailwindcss v4
 - ✅ `src/types/index.ts` — all TypeScript interfaces + factory functions
-- ✅ `src/utils/scheduleUtils.ts` — meeting day calendar math
+- ✅ `src/utils/scheduleUtils.ts` — meeting day calendar math + `prevMeetingDay`
 - ✅ `src/utils/timeUtils.ts` — time/date formatting (24hr store → 12hr display)
-- ✅ `src/utils/ganttAdapter.ts` — dhtmlxGantt adapter + subsystem lookup
+- ✅ `src/utils/ganttAdapter.ts` — dhtmlxGantt adapter, dynamic parent rendering, root-ancestor lookup
 - ✅ `src-tauri/src/commands.rs` — Rust file I/O commands
 - ✅ `vite.config.ts` — Tailwind v4 plugin registered
 - ✅ `src/index.css` — Tailwind + dhtmlxGantt CSS imports
+- ✅ Phases 1–4 complete (see below)
+- ✅ Pre-Phase 5: flexible hierarchy + completion rollup (see below)
 
 ---
 
@@ -73,6 +75,26 @@ acceptable — display mode is an at-startup configuration, not a live preferenc
 - The `suppressReload` ref in `GanttView` breaks the feedback loop when gantt events trigger store updates
 - Never read back from `gantt.getTask()` except in gantt event handlers that need to translate gantt state to store updates
 - When in doubt: store → gantt (never gantt → store except via event handlers)
+
+### Task hierarchy — flexible depth
+Tasks form an unlimited-depth tree via `parentId`. There is no fixed number of nesting levels.
+- Any non-milestone task can have children added to it at any time
+- A task with children is rendered as a dhtmlxGantt summary bar regardless of its stored `taskType`
+  — the rendering is determined by whether the task appears as a `parentId` anywhere in the list
+- `taskType` (`subsystem | assembly | task | milestone`) remains a **semantic hint** the user
+  can set manually in TaskEditor; it is NOT the source of rendering truth
+- `buildSubsystemLookup` maps every task to its **root ancestor** (the task with no `parentId`
+  in its branch) — used by DailyView to group leaf tasks under their top-level project group
+
+### Completion rollup
+Parent task `completionPercent` is always calculated from children — it cannot be set directly
+once a task has children.
+- Formula: `parent% = Math.round(average of direct children's completionPercent)`
+- Propagates all the way up to the root on every change
+- Triggered in `projectStore` whenever `updateTask` changes `completionPercent`, when `addTask`
+  adds a child (new 0% leaf lowers parent average), and when `deleteTask` removes a child
+- DailyView shows **only leaf tasks** (tasks with no children) — the actual work items
+- `recalculateCompletion()` and `propagateCompletionUp()` helpers in `projectStore.ts`
 
 ---
 
@@ -187,7 +209,7 @@ This is the most important phase — it's the primary display on the ClearTouch 
 
 ---
 
-## Phase 4: Daily View
+## Phase 4: Daily View ✅ COMPLETE
 **Goal: A useful daily summary screen showing what's happening today and allowing attendance tracking.**
 
 ### Pre-Phase 4 Requirements
@@ -211,7 +233,7 @@ Before building Phase 4 components, add these two cross-cutting concerns that wo
 - This infrastructure is already in place (App.tsx sets `data-mode`, index.css defines the variant)
 - Phase 3 components (TopBar, GanttView toolbar, TaskEditor) are already retrofitted
 
-### 4.1 DailyView Component (`src/components/DailyView/index.tsx`)
+### 4.1 DailyView Component (`src/components/DailyView/index.tsx`) ✅
 Layout:
 ```
 ┌──────────────────────────────────────────────────────┐
@@ -233,20 +255,20 @@ Layout:
 └──────────────────────────────────────────────────────┘
 ```
 
-### 4.2 Date Navigation
+### 4.2 Date Navigation ✅
 - Previous/next day buttons
 - Only navigate to meeting days (skip non-meeting days)
 - "Today" shortcut button
 - Show meeting day counter ("Build Day 3 of 28")
 
-### 4.3 Today's Tasks Panel
+### 4.3 Today's Tasks Panel ✅
 - Filter `projectStore.tasks` to tasks whose date range includes the selected date
 - Group by subsystem (use subsystemLookup)
 - Show completion checkbox — clicking updates `completionPercent` (0 → 100 toggle) and status
 - Show assigned members next to each task
 - Highlight blocked tasks in red
 
-### 4.4 Attendance Panel
+### 4.4 Attendance Panel ✅
 - If no WorkSession exists for the selected date: show "Start Session" button
   - Creates WorkSession via `projectStore.addWorkSession()`
   - Pre-populates attendance list from all active TeamMembers
@@ -255,13 +277,41 @@ Layout:
 - Late/Partial: time input fields appear for arrival/departure time
 - Notes field per member
 
-### 4.5 Daily Notes
+### 4.5 Daily Notes ✅
 - Project-level note editor (markdown textarea)
 - One tab/section per active subteam
 - Auto-creates DailyNote record on first edit
 - Save on blur
 
 **Phase 4 complete when:** You can navigate to any meeting day, mark attendance, check off tasks, and write notes. Non-meeting days are skipped.
+
+---
+
+## Pre-Phase 5: Flexible Hierarchy + Completion Rollup ✅ COMPLETE
+
+These cross-cutting improvements were added before Phase 5 because retrofitting them later
+would require touching every feature that creates or updates tasks.
+
+### Flexible task hierarchy ✅
+- Any non-milestone task can gain children at any time — there is no fixed depth limit
+- `GanttView`: `canHaveChildren(taskType)` replaces the old `PARENT_TYPES` array;
+  the "+ Add Task" toolbar button and TaskEditor's "Add Task inside" button are enabled
+  for any selected non-milestone task
+- `ganttAdapter.ts` → `taskToGantt(task, project, hasChildren)`: if `hasChildren` is true,
+  the task is forced to dhtmlxGantt `type: 'project'` (summary bar) regardless of stored
+  `taskType`; `projectToGanttData` computes the `parentIds` Set and passes it per task
+- `buildSubsystemLookup` rewritten to map every task to its **root ancestor** (walk the full
+  `parentId` chain); previously stopped at the nearest `subsystem`-typed ancestor, which
+  broke grouping for hierarchies deeper than 2 levels
+
+### Completion rollup ✅
+- `projectStore.ts`: `recalculateCompletion(parentId, tasks)` — averages direct children's
+  `completionPercent` and propagates recursively up the full ancestor chain
+- `propagateCompletionUp(changedId, tasks)` — entry point used by `updateTask` / `addTask`
+- `deleteTask` — captures parent ID before deletion, then calls `recalculateCompletion` after
+  filtering to keep the parent's average correct
+- DailyView `activeTasks` filter changed to **leaf tasks only** (tasks with no children);
+  parent/container tasks are excluded because their completion is derived, not directly worked
 
 ---
 
@@ -451,22 +501,22 @@ These are documented here so they don't get added during phases 1–8:
 ```
 src/
   types/index.ts                ✅ Complete
-  utils/scheduleUtils.ts        ✅ Complete
+  utils/scheduleUtils.ts        ✅ Complete (+ prevMeetingDay added for Phase 4)
   utils/timeUtils.ts            ✅ Complete
-  utils/ganttAdapter.ts         ✅ Complete
+  utils/ganttAdapter.ts         ✅ Complete (+ dynamic parent rendering + root-ancestor lookup, pre-Phase 5)
   utils/displayMode.ts          ✅ Pre-Phase 4
   stores/
-    projectStore.ts             ✅ Phase 1 + pre-Phase 4 (toast wiring)
+    projectStore.ts             ✅ Phase 1 + pre-Phase 4 (toasts) + pre-Phase 5 (rollup)
     teamStore.ts                ✅ Phase 1 + pre-Phase 4 (toast wiring)
     settingsStore.ts            ✅ Phase 1 + pre-Phase 4 (toast wiring)
     toastStore.ts               ✅ Pre-Phase 4
   components/
     TopBar/index.tsx            ✅ Phase 2 + kiosk variants
     NewProjectDialog/index.tsx  ✅ Phase 2
-    GanttView/index.tsx         ✅ Phase 3 + kiosk variants
+    GanttView/index.tsx         ✅ Phase 3 + kiosk variants + pre-Phase 5 (any task can have children)
     TaskEditor/index.tsx        ✅ Phase 3 + kiosk variants
     ToastContainer/index.tsx    ✅ Pre-Phase 4
-    DailyView/index.tsx         🔲 Phase 4
+    DailyView/index.tsx         ✅ Phase 4 + pre-Phase 5 (leaf-only task filter)
     TeamPanel/index.tsx         🔲 Phase 5
     TeamPanel/MemberForm.tsx    🔲 Phase 5
     Settings/index.tsx          🔲 Phase 6

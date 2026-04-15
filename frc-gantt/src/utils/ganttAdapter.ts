@@ -26,7 +26,12 @@ import {
 // Task → GanttTask
 // ------------------------------------------------------------
 
-export function taskToGantt(task: Task, project: Project): GanttTask {
+/**
+ * @param hasChildren - pass true when this task has at least one child in the task list.
+ *   Any task with children renders as a dhtmlxGantt 'project' (summary bar), regardless
+ *   of its stored taskType. This supports unlimited nesting depth without mutating types.
+ */
+export function taskToGantt(task: Task, project: Project, hasChildren = false): GanttTask {
   const calendarDuration = task.taskType === 'milestone'
     ? 0
     : meetingDaysToCalendarDays(task.startDate, task.estimatedDays, project);
@@ -40,7 +45,7 @@ export function taskToGantt(task: Task, project: Project): GanttTask {
     progress: task.completionPercent / 100,
     open: task.isExpanded ?? (task.taskType === 'subsystem' || task.taskType === 'assembly'),
     readonly: task.taskType === 'subsystem',
-    type: ganttTaskType(task.taskType),
+    type: hasChildren ? 'project' : ganttTaskType(task.taskType),
     $color: task.color,
     $status: task.status,
     $priority: task.priority,
@@ -148,9 +153,13 @@ export function projectToGanttData(
   project: Project,
 ): { data: GanttTask[]; links: GanttLink[] } {
   const taskMap = new Map(tasks.map(t => [t.id, t]));
+  // Any task that appears as a parentId somewhere in the list has children
+  const parentIds = new Set(
+    tasks.map(t => t.parentId).filter(Boolean) as string[],
+  );
   return {
     data: tasks.map(t => {
-      const gt = taskToGantt(t, project);
+      const gt = taskToGantt(t, project, parentIds.has(t.id));
       // Resolve color by walking up the parent chain
       gt.$color = resolveTaskColor(t, taskMap);
       return gt;
@@ -191,9 +200,12 @@ export function resolveTaskColor(
 // ------------------------------------------------------------
 
 /**
- * Builds a Map<taskId, subsystemTaskId> for all tasks.
- * Tasks that ARE subsystems map to themselves.
- * Tasks with no subsystem ancestor are absent from the map.
+ * Builds a Map<taskId, rootAncestorId> for all tasks.
+ * Every task maps to the top-level task (the one with no parentId) in its branch.
+ * Root tasks map to themselves.
+ *
+ * Used by DailyView to group leaf tasks under their top-level project grouping,
+ * regardless of how many nesting levels exist between them.
  *
  * Never stored in the project file — always computed from the task tree.
  */
@@ -202,21 +214,14 @@ export function buildSubsystemLookup(tasks: Task[]): Map<string, string> {
   const lookup = new Map<string, string>();
 
   for (const task of tasks) {
-    if (task.taskType === 'subsystem') {
-      lookup.set(task.id, task.id);
-      continue;
-    }
-    // Walk up the tree
+    // Walk up to the root (the task whose parentId is undefined or not in the map)
     let current: Task = task;
     while (current.parentId) {
       const parent = byId.get(current.parentId);
       if (!parent) break;
-      if (parent.taskType === 'subsystem') {
-        lookup.set(task.id, parent.id);
-        break;
-      }
       current = parent;
     }
+    lookup.set(task.id, current.id);
   }
   return lookup;
 }
