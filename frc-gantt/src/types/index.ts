@@ -148,7 +148,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     highlightToday: true,
   },
   defaultView: 'gantt',
-  displayMode: 'auto',
+  displayMode: 'desktop',
 };
 
 // ------------------------------------------------------------

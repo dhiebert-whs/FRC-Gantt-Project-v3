@@ -18,7 +18,7 @@ Each phase ends with something visible and usable.
 - ✅ `src-tauri/src/commands.rs` — Rust file I/O commands
 - ✅ `vite.config.ts` — Tailwind v4 plugin registered
 - ✅ `src/index.css` — Tailwind + dhtmlxGantt CSS imports
-- ✅ Phases 1–4 complete (see below)
+- ✅ Phases 1–5 complete (see below)
 - ✅ Pre-Phase 5: flexible hierarchy + completion rollup (see below)
 
 ---
@@ -315,7 +315,7 @@ would require touching every feature that creates or updates tasks.
 
 ---
 
-## Phase 5: Team Management
+## Phase 5: Team Management ✅ COMPLETE
 **Goal: Full CRUD for team members, subteams, and skills.**
 
 ### 5.1 TeamPanel Layout (`src/components/TeamPanel/index.tsx`)
@@ -517,8 +517,8 @@ src/
     TaskEditor/index.tsx        ✅ Phase 3 + kiosk variants
     ToastContainer/index.tsx    ✅ Pre-Phase 4
     DailyView/index.tsx         ✅ Phase 4 + pre-Phase 5 (leaf-only task filter)
-    TeamPanel/index.tsx         🔲 Phase 5
-    TeamPanel/MemberForm.tsx    🔲 Phase 5
+    TeamPanel/index.tsx         ✅ Phase 5
+    TeamPanel/MemberForm.tsx    ✅ Phase 5
     Settings/index.tsx          🔲 Phase 6
     Reports/index.tsx           🔲 Phase 7
   App.tsx                       ✅ Phase 2 + display mode + toast mount
