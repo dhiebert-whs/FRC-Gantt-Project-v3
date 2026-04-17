@@ -143,9 +143,9 @@ export function NewProjectDialog({ onClose }: NewProjectDialogProps) {
   }
 
   // ── Render ───────────────────────────────────────────────────
+  // Backdrop and centering are provided by ModalHost.
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-      <div className="bg-gray-900 border border-gray-700 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+    <div className="bg-gray-900 border border-gray-700 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800">
           <h2 className="text-lg font-semibold text-white">New Project</h2>
@@ -337,7 +337,6 @@ export function NewProjectDialog({ onClose }: NewProjectDialogProps) {
             Create Project
           </button>
         </div>
-      </div>
     </div>
   );
 }

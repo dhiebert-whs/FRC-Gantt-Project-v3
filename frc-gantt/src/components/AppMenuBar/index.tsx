@@ -107,7 +107,7 @@ export function AppMenuBar({ dispatch, isEnabled }: AppMenuBarProps) {
               aria-expanded={isOpen}
               onClick={() => toggleMenu(menu.label, hasItems)}
               onMouseEnter={() => handleMouseEnter(menu.label, hasItems)}
-              className={`px-3 flex items-center text-sm kiosk:text-base transition-colors ${
+              className={`px-3 flex items-center text-sm kiosk:text-base transition-colors border-0 outline-none ${
                 isStub
                   ? 'text-gray-500 cursor-default'
                   : isOpen

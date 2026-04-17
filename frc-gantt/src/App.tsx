@@ -2,12 +2,13 @@ import { useEffect, useState, useCallback } from 'react';
 import { useSettingsStore } from './stores/settingsStore';
 import { useTeamStore } from './stores/teamStore';
 import { useProjectStore } from './stores/projectStore';
+import { useModalStore } from './stores/modalStore';
 import { resolveDisplayMode } from './utils/displayMode';
 import { useCommands } from './commands/useCommands';
 import { AppMenuBar } from './components/AppMenuBar';
 import { TopBar } from './components/TopBar';
 import type { View } from './components/TopBar';
-import { NewProjectDialog } from './components/NewProjectDialog';
+import { ModalHost } from './components/modals/ModalHost';
 import { GanttView } from './components/GanttView';
 import { DailyView } from './components/DailyView';
 import { TeamPanel } from './components/TeamPanel';
@@ -28,13 +29,13 @@ function App() {
   const saveProjectAs  = useProjectStore(s => s.saveProjectAs);
   const openProject    = useProjectStore(s => s.openProject);
   const closeProject   = useProjectStore(s => s.closeProject);
+  const openModal      = useModalStore(s => s.openModal);
 
-  const [currentView,      setCurrentView]      = useState<View>('gantt');
-  const [showNewProject,   setShowNewProject]   = useState(false);
+  const [currentView, setCurrentView] = useState<View>('gantt');
 
   const { dispatch, isEnabled } = useCommands({
     hasProject: !!projectFile,
-    onNewProject: () => setShowNewProject(true),
+    onNewProject: () => openModal('newProject'),
     openProject,
     saveProject,
     saveProjectAs,
@@ -107,10 +108,7 @@ function App() {
         {currentView === 'settings' && <Settings />}
       </main>
 
-      {showNewProject && (
-        <NewProjectDialog onClose={() => setShowNewProject(false)} />
-      )}
-
+      <ModalHost />
       <ToastContainer />
     </div>
   );
