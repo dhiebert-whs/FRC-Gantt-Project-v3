@@ -3,6 +3,7 @@ import { useSettingsStore } from './stores/settingsStore';
 import { useTeamStore } from './stores/teamStore';
 import { useProjectStore } from './stores/projectStore';
 import { resolveDisplayMode } from './utils/displayMode';
+import { useCommands } from './commands/useCommands';
 import { TopBar } from './components/TopBar';
 import type { View } from './components/TopBar';
 import { NewProjectDialog } from './components/NewProjectDialog';
@@ -21,11 +22,23 @@ function App() {
   const displayModeSetting = useSettingsStore(s => s.settings.displayMode);
   const effectiveMode  = resolveDisplayMode(displayModeSetting);
 
-  const saveProject   = useProjectStore(s => s.saveProject);
-  const openProject   = useProjectStore(s => s.openProject);
+  const projectFile    = useProjectStore(s => s.projectFile);
+  const saveProject    = useProjectStore(s => s.saveProject);
+  const saveProjectAs  = useProjectStore(s => s.saveProjectAs);
+  const openProject    = useProjectStore(s => s.openProject);
+  const closeProject   = useProjectStore(s => s.closeProject);
 
   const [currentView,      setCurrentView]      = useState<View>('gantt');
   const [showNewProject,   setShowNewProject]   = useState(false);
+
+  const { dispatch } = useCommands({
+    hasProject: !!projectFile,
+    onNewProject: () => setShowNewProject(true),
+    openProject,
+    saveProject,
+    saveProjectAs,
+    closeProject,
+  });
 
   // Initialize stores on mount
   useEffect(() => {
@@ -40,27 +53,26 @@ function App() {
     }
   }, [settingsLoaded, defaultView]);
 
-  // Global keyboard shortcuts
+  // Global keyboard shortcuts — all actions route through the command registry
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (!e.ctrlKey && !e.metaKey) return;
-    // Don't fire while the user is typing in an input, textarea, or select
     const tag = (e.target as HTMLElement)?.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
     switch (e.key.toLowerCase()) {
       case 's':
         e.preventDefault();
-        saveProject();
+        dispatch(e.shiftKey ? 'project.saveAs' : 'project.save');
         break;
       case 'o':
         e.preventDefault();
-        openProject();
+        dispatch('project.open');
         break;
       case 'n':
         e.preventDefault();
-        setShowNewProject(true);
+        dispatch('project.new');
         break;
     }
-  }, [saveProject, openProject]);
+  }, [dispatch]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
