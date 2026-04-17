@@ -90,7 +90,8 @@ export function AppMenuBar({ dispatch, isEnabled }: AppMenuBarProps) {
   return (
     <div
       ref={barRef}
-      className="flex items-center h-8 kiosk:h-10 px-1 bg-gray-950 border-b border-gray-800 shrink-0 select-none"
+      style={{ display: 'flex', flexDirection: 'row' }}
+      className="items-stretch h-8 kiosk:h-10 bg-gray-950 border-b border-gray-800 shrink-0 select-none"
       role="menubar"
     >
       {MENUS.map(menu => {
@@ -99,19 +100,19 @@ export function AppMenuBar({ dispatch, isEnabled }: AppMenuBarProps) {
         const isStub = !hasItems;
 
         return (
-          <div key={menu.label} className="relative">
+          <div key={menu.label} className="relative flex">
             <button
               role="menuitem"
               aria-haspopup={hasItems}
               aria-expanded={isOpen}
               onClick={() => toggleMenu(menu.label, hasItems)}
               onMouseEnter={() => handleMouseEnter(menu.label, hasItems)}
-              className={`px-3 py-1 text-sm kiosk:text-base rounded transition-colors ${
+              className={`px-3 flex items-center text-sm kiosk:text-base transition-colors ${
                 isStub
-                  ? 'text-gray-600 cursor-default'
+                  ? 'text-gray-500 cursor-default'
                   : isOpen
                   ? 'bg-gray-700 text-white'
-                  : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                  : 'text-gray-300 hover:bg-gray-700 hover:text-white'
               }`}
             >
               {menu.label}
