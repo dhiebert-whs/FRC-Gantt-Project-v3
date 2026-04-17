@@ -228,3 +228,4 @@ Refactor is complete when:
 - Keep store APIs stable while changing UI surfaces.
 - Land phases in small PRs with explicit rollback points.
 - Use feature flags if needed for risky UI transitions (especially TaskEditor replacement).
+
