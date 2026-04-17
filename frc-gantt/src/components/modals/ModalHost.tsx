@@ -5,14 +5,18 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import { useModalStore } from '../../stores/modalStore';
+import { useProjectStore } from '../../stores/projectStore';
 import { NewProjectDialog } from '../NewProjectDialog';
+import { TaskDialog } from '../TaskDialog';
 
 const FOCUSABLE =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 export function ModalHost() {
-  const activeModal = useModalStore(s => s.activeModal);
-  const closeModal  = useModalStore(s => s.closeModal);
+  const activeModal  = useModalStore(s => s.activeModal);
+  const activeTaskId = useModalStore(s => s.activeTaskId);
+  const closeModal   = useModalStore(s => s.closeModal);
+  const projectFile  = useProjectStore(s => s.projectFile);
   const containerRef     = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
 
@@ -69,7 +73,20 @@ export function ModalHost() {
         className="outline-none"
         onKeyDown={handleFocusTrap}
       >
-        {activeModal === 'newProject' && <NewProjectDialog onClose={closeModal} />}
+        {activeModal === 'newProject' && (
+          <NewProjectDialog onClose={closeModal} />
+        )}
+        {activeModal === 'editTask' && activeTaskId && projectFile && (() => {
+          const task = projectFile.tasks.find(t => t.id === activeTaskId);
+          return task ? (
+            <TaskDialog
+              key={activeTaskId}
+              task={task}
+              project={projectFile.project}
+              onClose={closeModal}
+            />
+          ) : null;
+        })()}
       </div>
     </div>
   );

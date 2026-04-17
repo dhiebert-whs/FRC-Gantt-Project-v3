@@ -11,6 +11,7 @@ import { nanoid } from 'nanoid';
 import { useProjectStore } from '../../stores/projectStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useTeamStore } from '../../stores/teamStore';
+import { useModalStore } from '../../stores/modalStore';
 import {
   projectToGanttData,
   ganttToTask,
@@ -20,7 +21,6 @@ import { getMeetingDaysInRange, addMeetingDays, isMeetingDay } from '../../utils
 import { useToastStore } from '../../stores/toastStore';
 import { createTask } from '../../types';
 import type { GanttColumnId, Project, TeamMember, TaskType } from '../../types';
-import { TaskEditor } from '../TaskEditor';
 
 // ------------------------------------------------------------
 // Work-time setup
@@ -209,6 +209,7 @@ export function GanttView() {
   const deleteTask       = useProjectStore(s => s.deleteTask);
   const addDependency    = useProjectStore(s => s.addDependency);
   const deleteDependency = useProjectStore(s => s.deleteDependency);
+  const openEditTask     = useModalStore(s => s.openEditTask);
 
   const ganttPrefs         = useSettingsStore(s => s.settings.gantt);
   const updateGanttPrefs   = useSettingsStore(s => s.updateGanttPrefs);
@@ -231,6 +232,7 @@ export function GanttView() {
   const colorPaletteRef     = useRef(colorPalette);
   const addTaskRef          = useRef(addTask);
   const deleteTaskRef       = useRef(deleteTask);
+  const openEditTaskRef     = useRef(openEditTask);
 
   useEffect(() => { projectFileRef.current      = projectFile;      }, [projectFile]);
   useEffect(() => { updateTaskRef.current       = updateTask;       }, [updateTask]);
@@ -240,6 +242,7 @@ export function GanttView() {
   useEffect(() => { colorPaletteRef.current     = colorPalette;     }, [colorPalette]);
   useEffect(() => { addTaskRef.current          = addTask;          }, [addTask]);
   useEffect(() => { deleteTaskRef.current       = deleteTask;       }, [deleteTask]);
+  useEffect(() => { openEditTaskRef.current     = openEditTask;     }, [openEditTask]);
 
   // ── Gantt initialization ─────────────────────────────────────
   // IMPORTANT: The containerRef div is ALWAYS in the DOM (never inside an early return).
@@ -363,9 +366,10 @@ export function GanttView() {
         return true;
       });
 
-      // Task click → open editor
+      // Task click → open edit dialog via modal store
       gantt.attachEvent('onTaskClick', (id: string) => {
         setSelectedTaskId(id);
+        openEditTaskRef.current(id);
         return true;
       });
 
@@ -460,9 +464,10 @@ export function GanttView() {
     });
     addTaskRef.current(task);
     setSelectedTaskId(task.id);
+    openEditTaskRef.current(task.id);
   }, []);
 
-  // Creates a child task under the given parent
+  // Creates a child task under the given parent and opens the edit dialog
   const handleAddChildTask = useCallback((parentId: string) => {
     const pf = projectFileRef.current;
     if (!pf) return;
@@ -480,6 +485,7 @@ export function GanttView() {
     });
     addTaskRef.current(task);
     setSelectedTaskId(task.id);
+    openEditTaskRef.current(task.id);
   }, []);
 
   const handleZoomChange = useCallback((level: 'day' | 'week' | 'month') => {
@@ -597,19 +603,6 @@ export function GanttView() {
             <p className="text-base">No tasks yet.</p>
             <p className="text-sm">Click <span className="text-gray-400 font-medium">+ Add Subsystem</span> in the toolbar above to get started.</p>
           </div>
-        )}
-
-        {/* TaskEditor slide-in panel */}
-        {selectedTask && projectFile && (
-          <TaskEditor
-            key={selectedTask.id}
-            task={selectedTask}
-            project={projectFile.project}
-            onClose={() => setSelectedTaskId(null)}
-            onAddChild={canHaveChildren(selectedTask.taskType)
-              ? handleAddChildTask
-              : undefined}
-          />
         )}
 
       </div>
