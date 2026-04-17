@@ -84,16 +84,31 @@ describe('computePlannedEndDate', () => {
     expect(long > short).toBe(true);
   });
 
-  it('returns a date string even when project has no schedule periods', () => {
+  it('falls back to startDate when project has no schedule periods', () => {
     const noScheduleProject = createProject({
       name: 'Empty', teamNumber: 1, season: '2026',
       startDate: '2026-01-05',
       goalEndDate: '2026-06-01',
       hardEndDate: '2026-06-01',
     });
-    const result = computePlannedEndDate('2026-01-05', 3, 'task', noScheduleProject);
-    expect(typeof result).toBe('string');
-    expect(result.length).toBeGreaterThan(0);
+    expect(computePlannedEndDate('2026-01-05', 3, 'task', noScheduleProject)).toBe('2026-01-05');
+  });
+
+  it('falls back to startDate when startDate is outside all schedule periods', () => {
+    const laterProject = createProject({
+      name: 'Later', teamNumber: 1, season: '2026',
+      startDate: '2026-03-01',
+      goalEndDate: '2026-06-01',
+      hardEndDate: '2026-06-01',
+      schedulePeriods: [{
+        id: 'p1', startDate: '2026-03-01', endDate: '2026-06-01',
+        meetingDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+        defaultStartTime: '15:30', defaultEndTime: '18:30',
+      }],
+      scheduleExceptions: [],
+    });
+    // startDate '2026-01-05' is before the period starts — should fall back
+    expect(computePlannedEndDate('2026-01-05', 3, 'task', laterProject)).toBe('2026-01-05');
   });
 });
 

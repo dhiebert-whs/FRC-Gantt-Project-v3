@@ -65,6 +65,13 @@ export function computePlannedEndDate(
   project: Project,
 ): string {
   if (taskType === 'milestone') return startDate;
+  // addMeetingDays has a 730-day guard that falls back to calendar math when
+  // no schedule periods match rather than throwing. Guard against that here so
+  // we return startDate instead of a date two years in the future.
+  const coveringPeriod = project.schedulePeriods.find(
+    p => p.startDate <= startDate && startDate <= p.endDate && p.meetingDays.length > 0,
+  );
+  if (!coveringPeriod) return startDate;
   try {
     return addMeetingDays(startDate, Math.max(1, estimatedDays), project);
   } catch {
