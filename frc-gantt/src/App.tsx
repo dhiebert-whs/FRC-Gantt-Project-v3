@@ -4,6 +4,7 @@ import { useTeamStore } from './stores/teamStore';
 import { useProjectStore } from './stores/projectStore';
 import { resolveDisplayMode } from './utils/displayMode';
 import { useCommands } from './commands/useCommands';
+import { AppMenuBar } from './components/AppMenuBar';
 import { TopBar } from './components/TopBar';
 import type { View } from './components/TopBar';
 import { NewProjectDialog } from './components/NewProjectDialog';
@@ -31,7 +32,7 @@ function App() {
   const [currentView,      setCurrentView]      = useState<View>('gantt');
   const [showNewProject,   setShowNewProject]   = useState(false);
 
-  const { dispatch } = useCommands({
+  const { dispatch, isEnabled } = useCommands({
     hasProject: !!projectFile,
     onNewProject: () => setShowNewProject(true),
     openProject,
@@ -93,10 +94,10 @@ function App() {
       className="flex flex-col h-screen bg-gray-950 text-white overflow-hidden"
       data-mode={effectiveMode}
     >
+      <AppMenuBar dispatch={dispatch} isEnabled={isEnabled} />
       <TopBar
         currentView={currentView}
         onViewChange={setCurrentView}
-        onNewProject={() => setShowNewProject(true)}
       />
 
       <main className="flex-1 overflow-hidden">
